@@ -153,16 +153,21 @@ def updateRecord(rootdomain, recordid, host, recordtype, value):
 
 
 if __name__ == "__main__":
-    # DNSPOD上的根域名
-    ROOT_DOMAIN = "example.com"
-    # 用于解析转发的子域名，只写host
-    dst_hosts = ["xxxx"]
-    # 获取当前出口IP
     now_ip = getOwnIp()
-    allSubDomains = getSubDomains(ROOT_DOMAIN)
-    for record in allSubDomains["data"]["records"]:
-        for host in dst_hosts:
-            if host == record["name"]:
-                res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", now_ip)
-                if res["codeDesc"] == "Success":
-                    print "%s 更新成功 %s"%(time.strftime("%Y-%m-%d %H:%M:%S"),res)
+    while True:
+        new_ip = getOwnIp()
+        if new_ip == now_ip:
+            print "%s 解析未更新 当前IP为:%s" % (time.strftime("%Y-%m-%d %H:%M:%S"), now_ip)
+            time.sleep(int(random.random()*500))
+            pass
+        else:
+            ROOT_DOMAIN = "example.com"
+            dst_hosts = ["host"]
+            allSubDomains = getSubDomains(ROOT_DOMAIN)
+            for record in allSubDomains["data"]["records"]:
+                for host in dst_hosts:
+                    if host == record["name"]:
+                        res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", new_ip)
+                        if res["codeDesc"] == "Success":
+                            now_ip = new_ip
+                            print "%s 解析更新成功 新IP为:%s"%(time.strftime("%Y-%m-%d %H:%M:%S"),new_ip)
