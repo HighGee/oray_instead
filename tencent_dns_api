@@ -1,0 +1,168 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
+import urllib
+import httplib
+import binascii
+import hashlib
+import requests
+import hmac
+import time
+import random
+import json
+import re
+from pyquery import PyQuery
+
+# 腾讯云API TOKEN信息
+SecretId = "xxxxxxxxxxxxxx"
+SecretKey = "xxxxxxxxxxxxxx"
+
+# 腾讯云API功能配置
+requestMethod = 'POST'
+requestHost = 'cns.api.qcloud.com'
+requestPath = '/v2/index.php'
+
+# 获取出口IP
+def getOwnIp():
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:16.0) Gecko/20100101 Firefox/16.0"}
+    ipQueryRes = requests.get("http://www.ipip.net", headers=headers).content
+    ip_content = PyQuery(ipQueryRes)('.ip_text').text()
+    ipPattern = r'\d+.\d+.\d+.\d+'
+    rep = re.compile(ipPattern)
+    return rep.findall(ip_content)[0]
+
+# 参数排序拼接
+def makePlainText(requestMethod, requestHost, requestPath, params):
+    str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
+
+    source = '%s%s%s?%s' % (
+        requestMethod.upper(),
+        requestHost,
+        requestPath,
+        str_params
+    )
+    return source
+
+# 生成签名
+def sign(requestMethod, requestHost, requestPath, params, secretKey):
+    source = makePlainText(requestMethod, requestHost, requestPath, params)
+    hashed = hmac.new(secretKey, source, hashlib.sha1)
+    return binascii.b2a_base64(hashed.digest())[:-1]
+
+# 获取指定根域下所有子域名的list
+def getSubDomains(rootDomain):
+    # 请求参数
+    base_arg = {
+        "Timestamp": int(time.time()),
+        "Nonce": int(random.random()),
+        "SecretId": SecretId,
+    }
+    base_arg.update({
+        "domain": rootDomain,
+        "Action": "RecordList"
+    })
+    params = base_arg
+
+    signText = sign(requestMethod, requestHost, requestPath, params, SecretKey)
+
+    params['Signature'] = signText
+
+    headers = {"Content-type": "application/x-www-form-urlencoded",
+               "Accept": "text/plain"}
+
+    # 发送请求
+    httpsConn = None
+    try:
+        httpsConn = httplib.HTTPSConnection(host=requestHost, port=443)
+        if requestMethod == "GET":
+            params['Signature'] = urllib.quote(signText)
+
+            str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
+            url = 'https://%s%s?%s' % (requestHost, requestPath, str_params)
+            httpsConn.request("GET", url)
+        elif requestMethod == "POST":
+            params = urllib.urlencode(params)
+            httpsConn.request("POST", requestPath, params, headers)
+
+        response = httpsConn.getresponse()
+        data = response.read()
+        # print data
+        jsonRet = json.loads(data)
+        return jsonRet
+
+    except Exception, e:
+        print e
+    finally:
+        if httpsConn:
+            httpsConn.close()
+
+# 更新指定子域名的解析记录
+def updateRecord(rootdomain, recordid, host, recordtype, value):
+    # 请求参数
+
+    base_arg = {
+        "Timestamp": int(time.time()),
+        "Nonce": int(random.random()),
+        "SecretId": SecretId,
+    }
+    base_arg.update({
+        "domain": rootdomain,
+        "recordId": recordid,
+        "subDomain": host,
+        "recordType": recordtype,
+        "recordLine": "默认",
+        "value": value,
+        "Action": "RecordModify"
+    })
+    params = base_arg
+
+    signText = sign(requestMethod, requestHost, requestPath, params, SecretKey)
+
+    params['Signature'] = signText
+
+    headers = {"Content-type": "application/x-www-form-urlencoded",
+               "Accept": "text/plain"}
+
+    # 发送请求
+    httpsConn = None
+    try:
+        httpsConn = httplib.HTTPSConnection(host=requestHost, port=443)
+        if requestMethod == "GET":
+            params['Signature'] = urllib.quote(signText)
+
+            str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
+            url = 'https://%s%s?%s' % (requestHost, requestPath, str_params)
+            httpsConn.request("GET", url)
+        elif requestMethod == "POST":
+            params = urllib.urlencode(params)
+            httpsConn.request("POST", requestPath, params, headers)
+
+        response = httpsConn.getresponse()
+        data = response.read()
+        # print data
+        jsonRet = json.loads(data)
+        return jsonRet
+
+    except Exception, e:
+        print e
+    finally:
+        if httpsConn:
+            httpsConn.close()
+
+
+if __name__ == "__main__":
+    # DNSPOD上的根域名
+    ROOT_DOMAIN = "example.com"
+    # 用于解析转发的子域名，只写host
+    dst_hosts = ["xxxx"]
+    # 获取当前出口IP
+    now_ip = getOwnIp()
+    allSubDomains = getSubDomains(ROOT_DOMAIN)
+    for record in allSubDomains["data"]["records"]:
+        for host in dst_hosts:
+            if host == record["name"]:
+                res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", now_ip)
+                if res["codeDesc"] == "Success":
+                    print "%s 更新成功 %s"%(time.strftime("%Y-%m-%d %H:%M:%S"),res)
