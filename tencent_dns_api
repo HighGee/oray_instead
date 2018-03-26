@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import sys
+
 reload(sys)
 sys.setdefaultencoding('utf8')
 import urllib
@@ -14,17 +15,13 @@ import random
 import json
 import re
 from pyquery import PyQuery
-
+import argparse
 # 腾讯云API TOKEN信息
-SecretId = "xxxxxxxxxxxxxx"
-SecretKey = "xxxxxxxxxxxxxx"
-
-# 腾讯云API功能配置
 requestMethod = 'POST'
 requestHost = 'cns.api.qcloud.com'
 requestPath = '/v2/index.php'
 
-# 获取出口IP
+
 def getOwnIp():
     headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:16.0) Gecko/20100101 Firefox/16.0"}
     ipQueryRes = requests.get("http://www.ipip.net", headers=headers).content
@@ -33,7 +30,6 @@ def getOwnIp():
     rep = re.compile(ipPattern)
     return rep.findall(ip_content)[0]
 
-# 参数排序拼接
 def makePlainText(requestMethod, requestHost, requestPath, params):
     str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
 
@@ -45,19 +41,19 @@ def makePlainText(requestMethod, requestHost, requestPath, params):
     )
     return source
 
-# 生成签名
+
 def sign(requestMethod, requestHost, requestPath, params, secretKey):
     source = makePlainText(requestMethod, requestHost, requestPath, params)
     hashed = hmac.new(secretKey, source, hashlib.sha1)
     return binascii.b2a_base64(hashed.digest())[:-1]
 
-# 获取指定根域下所有子域名的list
-def getSubDomains(rootDomain):
+
+def getSubDomains(rootDomain,secret_id,secret_key):
     # 请求参数
     base_arg = {
         "Timestamp": int(time.time()),
         "Nonce": int(random.random()),
-        "SecretId": SecretId,
+        "SecretId": secret_id,
     }
     base_arg.update({
         "domain": rootDomain,
@@ -65,7 +61,7 @@ def getSubDomains(rootDomain):
     })
     params = base_arg
 
-    signText = sign(requestMethod, requestHost, requestPath, params, SecretKey)
+    signText = sign(requestMethod, requestHost, requestPath, params, secret_key)
 
     params['Signature'] = signText
 
@@ -98,14 +94,13 @@ def getSubDomains(rootDomain):
         if httpsConn:
             httpsConn.close()
 
-# 更新指定子域名的解析记录
-def updateRecord(rootdomain, recordid, host, recordtype, value):
-    # 请求参数
 
+def updateRecord(rootdomain, recordid, host, recordtype, value, secret_id,secret_key):
+    # 请求参数
     base_arg = {
         "Timestamp": int(time.time()),
         "Nonce": int(random.random()),
-        "SecretId": SecretId,
+        "SecretId": secret_id,
     }
     base_arg.update({
         "domain": rootdomain,
@@ -118,7 +113,7 @@ def updateRecord(rootdomain, recordid, host, recordtype, value):
     })
     params = base_arg
 
-    signText = sign(requestMethod, requestHost, requestPath, params, SecretKey)
+    signText = sign(requestMethod, requestHost, requestPath, params, secret_key)
 
     params['Signature'] = signText
 
@@ -152,7 +147,18 @@ def updateRecord(rootdomain, recordid, host, recordtype, value):
             httpsConn.close()
 
 
+
 if __name__ == "__main__":
+    parsers = argparse.ArgumentParser()
+    parsers.add_argument("--secret_id",type=str,help="腾讯云API SECRET ID")
+    parsers.add_argument("--secret_key",type=str,help="腾讯云API SECRET KEY")
+    parsers.add_argument("--root_domain",type=str,help="指定根域名")
+    parsers.add_argument("--host",type=str,help="指定解析转发的子域名")
+    FLAGS, unparsed= parsers.parse_known_args()
+    SecretID =  FLAGS.secret_id
+    SecretKEY = FLAGS.secret_key
+    ROOT_DOMAIN = FLAGS.root_domain
+    HOST = FLAGS.host
     now_ip = getOwnIp()
     while True:
         new_ip = getOwnIp()
@@ -161,13 +167,14 @@ if __name__ == "__main__":
             time.sleep(int(random.random()*500))
             pass
         else:
-            ROOT_DOMAIN = "example.com"
-            dst_hosts = ["host"]
-            allSubDomains = getSubDomains(ROOT_DOMAIN)
+            ROOT_DOMAIN = ROOT_DOMAIN
+            dst_hosts = [HOST]
+            allSubDomains = getSubDomains(ROOT_DOMAIN,SecretID,SecretKEY)
             for record in allSubDomains["data"]["records"]:
                 for host in dst_hosts:
                     if host == record["name"]:
-                        res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", new_ip)
+                        res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", new_ip,SecretID,SecretKEY)
                         if res["codeDesc"] == "Success":
                             now_ip = new_ip
                             print "%s 解析更新成功 新IP为:%s"%(time.strftime("%Y-%m-%d %H:%M:%S"),new_ip)
+
