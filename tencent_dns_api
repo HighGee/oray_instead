@@ -156,14 +156,13 @@ if __name__ == "__main__":
     parsers.add_argument("--root_domain",type=str,help="指定根域名")
     parsers.add_argument("--host",type=str,help="指定解析转发的子域名")
     FLAGS, unparsed= parsers.parse_known_args()
+    
     SecretID =  FLAGS.secret_id
     SecretKEY = FLAGS.secret_key
     ROOT_DOMAIN = FLAGS.root_domain
     HOST = FLAGS.host
-
+    
     dst_hosts = [HOST]
-    ROOT_DOMAIN = ROOT_DOMAIN
-
     # 初始化检测
     now_ip = getOwnIp()
     now_nsip = ''
