@@ -149,6 +149,7 @@ def updateRecord(rootdomain, recordid, host, recordtype, value, secret_id,secret
 
 
 if __name__ == "__main__":
+    # 获取命令行参数
     parsers = argparse.ArgumentParser()
     parsers.add_argument("--secret_id",type=str,help="腾讯云API SECRET ID")
     parsers.add_argument("--secret_key",type=str,help="腾讯云API SECRET KEY")
@@ -159,7 +160,22 @@ if __name__ == "__main__":
     SecretKEY = FLAGS.secret_key
     ROOT_DOMAIN = FLAGS.root_domain
     HOST = FLAGS.host
+
+    dst_hosts = [HOST]
+    ROOT_DOMAIN = ROOT_DOMAIN
+
+    # 初始化检测
     now_ip = getOwnIp()
+    now_nsip = ''
+    for record in getSubDomains(ROOT_DOMAIN,SecretID,SecretKEY):
+        for host in dst_hosts:
+            if host == record["name"]:
+                now_nsip = record["value"]
+                if now_ip != now_nsip:
+                    res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", now_ip, SecretID, SecretKEY)
+                    if res["codeDesc"] == "Success":
+                        print "%s 解析更新成功 新IP为:%s" % (time.strftime("%Y-%m-%d %H:%M:%S"), now_ip)
+    # 监控变化
     while True:
         new_ip = getOwnIp()
         if new_ip == now_ip:
@@ -167,8 +183,6 @@ if __name__ == "__main__":
             time.sleep(int(random.random()*500))
             pass
         else:
-            ROOT_DOMAIN = ROOT_DOMAIN
-            dst_hosts = [HOST]
             allSubDomains = getSubDomains(ROOT_DOMAIN,SecretID,SecretKEY)
             for record in allSubDomains["data"]["records"]:
                 for host in dst_hosts:
