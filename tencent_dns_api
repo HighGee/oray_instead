@@ -167,14 +167,18 @@ if __name__ == "__main__":
     # 初始化检测
     now_ip = getOwnIp()
     now_nsip = ''
-    for record in getSubDomains(ROOT_DOMAIN,SecretID,SecretKEY):
+    for record in getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY)["data"]["records"]:
         for host in dst_hosts:
             if host == record["name"]:
                 now_nsip = record["value"]
                 if now_ip != now_nsip:
                     res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", now_ip, SecretID, SecretKEY)
                     if res["codeDesc"] == "Success":
-                        print "%s 解析更新成功 新IP为:%s" % (time.strftime("%Y-%m-%d %H:%M:%S"), now_ip)
+                        print "%s 初始化 解析更新成功 新IP为:%s" % (time.strftime("%Y-%m-%d %H:%M:%S"), now_ip)
+                        time.sleep(300)
+                else:
+                    print "%s 初始化成功 当前IP为:%s" % (time.strftime("%Y-%m-%d %H:%M:%S"), now_ip)
+                    time.sleep(300)
     # 监控变化
     while True:
         new_ip = getOwnIp()
