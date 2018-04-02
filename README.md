@@ -1,4 +1,4 @@
-# oray_instead V 1.0.1
+# oray_instead V 1.0.2
 出于下述原因,开发了简单的,类似ORAY的DDNS功能:<br/>
 1.ORAY对普通用户不友好,免费版经常崩;<br/>
 2.DDNS需求;<br/><br/>
@@ -11,14 +11,13 @@
 <br/>
 使用方法：<br/>
 git clone https://github.com/HighGee/oray_instead.git <br/>
-编辑腾讯云ID和KEY<br/>
-/bin/python -u /the/path/to/oray_instead/tencent_dns_api.py --root_domain example.com --host transpond --secret_id xxxxxxxxx --secret_key xxxxxxxx >> /the/log/path/dns.log & <br/>
-
+/bin/python -u /the/path/to/oray_instead/tencent_dns_api.py --root_domain example.com --host transpond --secret_id xxxxxxxxx --secret_key xxxxxxxx & <br/>
 
 [root@captain smalls]# python tencent_dns_api.py -h<br/>
 usage: tencent_dns_api.py [-h] [--secret_id SECRET_ID]<br/>
                           [--secret_key SECRET_KEY]<br/>
                           [--root_domain ROOT_DOMAIN] [--host HOST]<br/>
+                          [--logfile LOGFILE]<br/>
 <br/>
 optional arguments:<br/>
   -h, --help            show this help message and exit<br/>
@@ -26,3 +25,4 @@ optional arguments:<br/>
   --secret_key  SECRET_KEY  腾讯云API SECRET KEY<br/>
   --root_domain ROOT_DOMAIN 指定根域名<br/>
   --host        HOST        指定解析转发的子域名<br/>
+  --logfile LOGFILE     日志文件的绝对路径，默认脚本所在路径下dns.log
