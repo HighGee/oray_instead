@@ -1,4 +1,4 @@
-# oray_instead V 1.0.2 描述
+# oray_instead V 1.0.3 描述
 出于下述原因，开发了简单的，类似ORAY的DDNS功能:<br/>
 1.ORAY对普通用户不友好,免费版经常崩;<br/>
 2.DDNS需求;<br/><br/>
@@ -38,4 +38,5 @@ optional arguments:<br/>
   --secret_key  SECRET_KEY  腾讯云API SECRET KEY<br/>
   --root_domain ROOT_DOMAIN 指定根域名<br/>
   --host        HOST        指定解析转发的子域名<br/>
-  --logfile LOGFILE     日志文件的绝对路径，默认脚本所在路径下dns.log
+  --receivers   RECEIVERS   指定程序异常时的消息接收人,--receivers "email1@example.com;email2@example1.com" <br/>
+  --logfile     LOGFILE     日志文件的绝对路径，默认脚本所在路径下dns.log
