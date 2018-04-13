@@ -18,6 +18,9 @@ import json
 import re
 from pyquery import PyQuery
 import argparse
+import smtplib
+from email.mime.text import MIMEText
+from email.header import Header
 
 # 腾讯云API TOKEN信息
 requestMethod = 'POST'
@@ -25,23 +28,64 @@ requestHost = 'cns.api.qcloud.com'
 requestPath = '/v2/index.php'
 
 
+class IsMail():
+    def __init__(self):
+        self.p = re.compile(r'[^\._][\w\._-]+@(?:[A-Za-z0-9]+\.)+[A-Za-z]+$')
+
+    def ismail(self, str):
+        res = self.p.match(str)
+        if res:
+            return True
+        else:
+            return False
+
+
 def updateLog(log, logfile):
     log_record = "%s %s" % (time.strftime("%Y-%m-%d %H:%M:%S"), log)
     commands.getoutput("echo %s >> %s" % (log_record, logfile))
 
 
-def getOwnIp(logfile):
+def way_notice(receiver):
+    title = u'OI出口获取异常通知'
+    content = requests.get('http://myip.ipip.net').content
+    msg = MIMEText(content, 'html', _charset='utf-8')
+    me = 'OI@highgee.com'
+    msg['Subject'] = Header(title, charset='utf-8')
+    msg['From'] = me
+    msg['To'] = ';'.join(receiver)
+
+    s = smtplib.SMTP('localhost')
+    s.sendmail(me, receiver, msg.as_string())
+    s.quit()
+
+
+def getOwnIp(logfile, RECEIVERS=None):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:16.0) Gecko/20100101 Firefox/16.0"}
     try:
         ipQueryRes = requests.get("http://www.ipip.net", headers=headers).content
         ip_content = PyQuery(ipQueryRes)('.ip_text').text()
         ipPattern = r'\d+.\d+.\d+.\d+'
         rep = re.compile(ipPattern)
-        result = {"status":"ok","ip":rep.findall(ip_content)[0]}
+        result = {"status": "ok", "ip": rep.findall(ip_content)[0]}
     except:
-        updateLog('当前网络异常，无法获取出口IP',logfile)
-        result = {"status":"wrong"}
-
+        updateLog('当前网络异常，无法获取出口IP', logfile)
+        ismail = IsMail()
+        rec_failed = []
+        if RECEIVERS is not None:
+            if ';' in RECEIVERS:
+                for email in RECEIVERS.split(';'):
+                    if ismail.ismail(email):
+                        way_notice([email])
+                    else:
+                        rec_failed.append(email)
+            else:
+                if ismail.ismail(RECEIVERS):
+                    way_notice([RECEIVERS])
+                else:
+                    rec_failed.append(RECEIVERS)
+        if len(rec_failed) != 0:
+            updateLog('邮件通知失败，%s' % ';'.join(rec_failed), logfile)
+        result = {"status": "wrong"}
     return result
 
 
@@ -169,12 +213,15 @@ if __name__ == "__main__":
     parsers.add_argument("--secret_key", type=str, help="腾讯云API SECRET KEY")
     parsers.add_argument("--root_domain", type=str, help="指定根域名")
     parsers.add_argument("--host", type=str, help="指定解析转发的子域名")
+    parsers.add_argument("--receivers", type=str,
+                         help="指定程序异常时的消息接收人,--receivers \"email1@example.com;email2@example1.com\"")
     parsers.add_argument("--logfile", type=str, help="日志文件的绝对路径，默认脚本所在路径下dns.log")
     FLAGS, unparsed = parsers.parse_known_args()
 
     SecretID = FLAGS.secret_id
     SecretKEY = FLAGS.secret_key
     ROOT_DOMAIN = FLAGS.root_domain
+    RECEIVERS = FLAGS.receivers
     HOST = FLAGS.host
     LOGFILE = FLAGS.logfile
 
@@ -183,15 +230,16 @@ if __name__ == "__main__":
 
     dst_hosts = [HOST]
     # 初始化检测 当前出口IP与云端IP异同
-    now_ip = getOwnIp(LOGFILE)
+    now_ip = getOwnIp(LOGFILE, RECEIVERS=RECEIVERS)
     if now_ip["status"] == "ok":
         now_nsip = ''
-        for record in getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY,LOGFILE)["data"]["records"]:
+        for record in getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, LOGFILE)["data"]["records"]:
             for host in dst_hosts:
                 if host == record["name"]:
                     now_nsip = record["value"]
                     if now_ip["ip"] != now_nsip:
-                        res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", now_ip["ip"], SecretID, SecretKEY, LOGFILE)
+                        res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", now_ip["ip"], SecretID, SecretKEY,
+                                           LOGFILE)
                         if res["codeDesc"] == "Success":
                             updateLog("初始化 解析更新成功 新IP为:%s" % (now_ip["ip"]), LOGFILE)
                             time.sleep(300)
@@ -199,10 +247,12 @@ if __name__ == "__main__":
                         updateLog("初始化成功 当前IP为:%s" % (now_ip["ip"]), LOGFILE)
                         time.sleep(300)
     else:
-        time.sleep(10)
+        time.sleep(600)
+
     # 监控变化
+    wait_interval = 600
     while True:
-        new_ip = getOwnIp(LOGFILE)
+        new_ip = getOwnIp(LOGFILE, RECEIVERS=RECEIVERS)
         if new_ip["status"] == "ok":
             if now_ip["status"] == "ok" and new_ip["ip"] == now_ip["ip"]:
                 updateLog("解析未更新 当前IP为:%s" % (new_ip["ip"]), LOGFILE)
@@ -213,11 +263,13 @@ if __name__ == "__main__":
                 for record in allSubDomains["data"]["records"]:
                     for host in dst_hosts:
                         if host == record["name"]:
-                            res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", new_ip["ip"], SecretID, SecretKEY, LOGFILE)
+                            res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", new_ip["ip"], SecretID, SecretKEY,
+                                               LOGFILE)
                             if res["codeDesc"] == "Success":
                                 now_ip["ip"] = new_ip["ip"]
                                 now_ip["status"] = "ok"
                                 updateLog("解析更新成功 新IP为:%s" % (new_ip["ip"]), LOGFILE)
 
         else:
-            time.sleep(10)
+            time.sleep(wait_interval)
+            wait_interval += 60
