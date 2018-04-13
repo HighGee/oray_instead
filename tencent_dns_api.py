@@ -62,11 +62,16 @@ def way_notice(receiver):
 def getOwnIp(logfile, RECEIVERS=None):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:16.0) Gecko/20100101 Firefox/16.0"}
     try:
-        ipQueryRes = requests.get("http://www.ipip.net", headers=headers).content
-        ip_content = PyQuery(ipQueryRes)('.ip_text').text()
-        ipPattern = r'\d+.\d+.\d+.\d+'
-        rep = re.compile(ipPattern)
-        result = {"status": "ok", "ip": rep.findall(ip_content)[0]}
+        rep = requests.get("http://www.ipip.net", headers=headers)
+        if rep.status_code != 200:
+            result = {"status": "wrong", "msg": "http_status"}
+        else:
+            ipQueryRes = rep.content
+            ip_content = PyQuery(ipQueryRes)('.ip_text').text()
+            ipPattern = r'\d+.\d+.\d+.\d+'
+            rep = re.compile(ipPattern)
+            result = {"status": "ok", "ip": rep.findall(ip_content)[0]}
+
     except:
         updateLog('当前网络异常，无法获取出口IP', logfile)
         ismail = IsMail()
@@ -85,7 +90,7 @@ def getOwnIp(logfile, RECEIVERS=None):
                     rec_failed.append(RECEIVERS)
         if len(rec_failed) != 0:
             updateLog('邮件通知失败，%s' % ';'.join(rec_failed), logfile)
-        result = {"status": "wrong"}
+        result = {"status": "wrong", "msg": "exception"}
     return result
 
 
@@ -247,10 +252,14 @@ if __name__ == "__main__":
                         updateLog("初始化成功 当前IP为:%s" % (now_ip["ip"]), LOGFILE)
                         time.sleep(300)
     else:
-        time.sleep(600)
+        if now_ip["msg"] == "exception":
+            time.sleep(600)
+        else:
+            time.sleep(10)
 
     # 监控变化
-    wait_interval = 600
+    wait_interval = 10
+    exce_interval = 600
     while True:
         new_ip = getOwnIp(LOGFILE, RECEIVERS=RECEIVERS)
         if new_ip["status"] == "ok":
@@ -271,5 +280,8 @@ if __name__ == "__main__":
                                 updateLog("解析更新成功 新IP为:%s" % (new_ip["ip"]), LOGFILE)
 
         else:
-            time.sleep(wait_interval)
-            wait_interval += 60
+            if new_ip["msg"] == "exception":
+                time.sleep(exce_interval)
+                exce_interval += 60
+            else:
+                time.sleep(wait_interval)
