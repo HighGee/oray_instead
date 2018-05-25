@@ -62,18 +62,19 @@ def way_notice(receiver):
 def getOwnIp(logfile, RECEIVERS=None):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:16.0) Gecko/20100101 Firefox/16.0"}
     try:
-        rep = requests.get("http://www.ipip.net", headers=headers)
+        rep = requests.get("https://www.ipip.net/ip.html", headers=headers)
         if rep.status_code != 200:
             result = {"status": "wrong", "msg": "http_status"}
         else:
             ipQueryRes = rep.content
-            ip_content = PyQuery(ipQueryRes)('.ip_text').text()
-            ipPattern = r'\d+.\d+.\d+.\d+'
-            rep = re.compile(ipPattern)
-            result = {"status": "ok", "ip": rep.findall(ip_content)[0]}
+            ip_content = PyQuery(ipQueryRes)('#ip_text').value()
+            #ipPattern = r'\d+.\d+.\d+.\d+'
+            #rep = re.compile(ipPattern)
+            #result = {"status": "ok", "ip": rep.findall(ip_content)[0]}
+            result = {"status": "ok", "ip": ip_content}
 
-    except:
-        updateLog('当前网络异常，无法获取出口IP', logfile)
+    except Exception,e:
+        updateLog(u'当前网络异常，无法获取出口IP, %s'%e, logfile)
         ismail = IsMail()
         rec_failed = []
         if RECEIVERS is not None:
