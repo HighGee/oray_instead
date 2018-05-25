@@ -67,11 +67,8 @@ def getOwnIp(logfile, RECEIVERS=None):
             result = {"status": "wrong", "msg": "http_status"}
         else:
             ipQueryRes = rep.content
-            ip_content = PyQuery(ipQueryRes)('#ip_text').value()
-            #ipPattern = r'\d+.\d+.\d+.\d+'
-            #rep = re.compile(ipPattern)
-            #result = {"status": "ok", "ip": rep.findall(ip_content)[0]}
-            result = {"status": "ok", "ip": ip_content}
+            ip_content = PyQuery(ipQueryRes)('input[name$="ip"]')
+            result = {"status": "ok", "ip": ip_content.val()}
 
     except Exception,e:
         updateLog(u'当前网络异常，无法获取出口IP, %s'%e, logfile)
@@ -210,7 +207,6 @@ def updateRecord(rootdomain, recordid, host, recordtype, value, secret_id, secre
     finally:
         if httpsConn:
             httpsConn.close()
-
 
 if __name__ == "__main__":
     # 获取命令行参数
