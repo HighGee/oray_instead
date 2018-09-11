@@ -62,16 +62,18 @@ def way_notice(receiver):
 def getOwnIp(logfile, RECEIVERS=None):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:16.0) Gecko/20100101 Firefox/16.0"}
     try:
-        rep = requests.get("https://www.ipip.net/ip.html", headers=headers)
+        rep = requests.get("http://myip.ipip.net/", headers=headers)
         if rep.status_code != 200:
             result = {"status": "wrong", "msg": "http_status"}
         else:
-            ipQueryRes = rep.content
-            ip_content = PyQuery(ipQueryRes)('input[name$="ip"]')
-            result = {"status": "ok", "ip": ip_content.val()}
+            import re
+            reg = "((2[0-4][1-9]\.)|(25[0-5]\.)|(1[0-9][0-9]\.)|([1-9][0-9]\.)|([1-9]\.)){3}((2[0-4][0-9]\.)|(25[0-4])|(1[0-9][0-9])|([1-9][0-9])|([1-9]))"
+            reg_res = re.search(reg, rep.content)
+            my_ip = reg_res.group()
+            result = {"status": "ok", "ip": my_ip}
 
-    except Exception,e:
-        updateLog(u'当前网络异常，无法获取出口IP, %s'%e, logfile)
+    except Exception, e:
+        updateLog(u'当前网络异常，无法获取出口IP, %s' % e, logfile)
         ismail = IsMail()
         rec_failed = []
         if RECEIVERS is not None:
@@ -208,7 +210,10 @@ def updateRecord(rootdomain, recordid, host, recordtype, value, secret_id, secre
         if httpsConn:
             httpsConn.close()
 
+
 if __name__ == "__main__":
+    # LOGFILE = '%s/dns.log' % os.path.abspath(os.path.dirname(__file__))
+    # print(getOwnIp(logfile=LOGFILE))
     # 获取命令行参数
     parsers = argparse.ArgumentParser()
     parsers.add_argument("--secret_id", type=str, help="腾讯云API SECRET ID")
