@@ -62,16 +62,12 @@ def way_notice(receiver):
 def getOwnIp(logfile, RECEIVERS=None):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:16.0) Gecko/20100101 Firefox/16.0"}
     try:
-        rep = requests.get("http://myip.ipip.net/", headers=headers)
+        rep = requests.get("https://haiji.io/get_way_out.php", headers=headers)
         if rep.status_code != 200:
             result = {"status": "wrong", "msg": "http_status"}
         else:
-            import re
-            reg = "((2[0-4][1-9]\.)|(25[0-5]\.)|(1[0-9][0-9]\.)|([1-9][0-9]\.)|([1-9]\.)){3}((2[0-4][0-9]\.)|(25[0-4])|(1[0-9][0-9])|([1-9][0-9])|([1-9]))"
-            reg_res = re.search(reg, rep.content)
-            my_ip = reg_res.group()
+            my_ip = json.loads(rep.content)["client_ip"]
             result = {"status": "ok", "ip": my_ip}
-
     except Exception, e:
         updateLog(u'当前网络异常，无法获取出口IP, %s' % e, logfile)
         ismail = IsMail()
