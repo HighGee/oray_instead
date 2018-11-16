@@ -72,6 +72,7 @@ def getOwnIp(logger, RECEIVERS=None):
     try:
         rep = requests.get("https://haiji.io/get_way_out.php", headers=headers)
         if rep.status_code != 200:
+            logger.error(u"站点访问异常，无法获取出口IP，状态码为 {}".format(rep.status_code))
             result = {"status": "wrong", "msg": "http_status"}
         else:
             my_ip = json.loads(rep.content)["client_ip"]
@@ -266,14 +267,12 @@ if __name__ == "__main__":
 
     # 监控变化
     wait_interval = 10
-    exce_interval = 30
     while True:
         new_ip = getOwnIp(logger, RECEIVERS=RECEIVERS)
         if new_ip["status"] == "ok":
             if now_ip["status"] == "ok" and new_ip["ip"] == now_ip["ip"]:
                 logger.info("解析未更新 当前IP为:{}".format(new_ip["ip"]))
-                time.sleep(int(random.random() * 100))
-                pass
+                time.sleep(wait_interval)
             else:
                 allSubDomains = getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, LOGFILE)
                 for record in allSubDomains["data"]["records"]:
@@ -285,10 +284,10 @@ if __name__ == "__main__":
                                 now_ip["ip"] = new_ip["ip"]
                                 now_ip["status"] = "ok"
                                 logger.info("解析更新成功 新IP为:{}".format(new_ip["ip"]))
+                time.sleep(wait_interval)
 
         else:
             if new_ip["msg"] == "exception":
-                time.sleep(exce_interval)
-                exce_interval += 30
+                time.sleep(wait_interval)
             else:
                 time.sleep(wait_interval)
