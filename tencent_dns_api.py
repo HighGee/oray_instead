@@ -1,5 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+"""
+Author: HaiJi.Wang
+Date: 2018-11-16
+"""
 import sys
 
 reload(sys)
@@ -26,6 +30,10 @@ requestMethod = 'POST'
 requestHost = 'cns.api.qcloud.com'
 requestPath = '/v2/index.php'
 
+# 出口获取地址
+own_srv_url = 'https://haiji.io/get_way_out.php'
+ipipnet_url = 'http://myip.ipip.net'
+
 
 class IsMail():
     def __init__(self):
@@ -43,6 +51,7 @@ def appLog(appname, LOGFILE):
     logger = logging.getLogger(appname)
     logger.setLevel(logging.DEBUG)
 
+    # 日志格式
     formatter = logging.Formatter('%(asctime)s %(name)s %(filename)s %(levelname)s %(message)s')
     formatter.datefmt = '%Y-%m-%d %H:%M:%S'
 
@@ -55,7 +64,7 @@ def appLog(appname, LOGFILE):
 
 def way_notice(receiver):
     title = u'OI出口获取异常通知'
-    content = requests.get('http://myip.ipip.net').content
+    content = requests.get(ipipnet_url).content
     msg = MIMEText(content, 'html', _charset='utf-8')
     me = 'OI@highgee.com'
     msg['Subject'] = Header(title, charset='utf-8')
@@ -70,7 +79,7 @@ def way_notice(receiver):
 def getOwnIp(logger, RECEIVERS=None):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:16.0) Gecko/20100101 Firefox/16.0"}
     try:
-        rep = requests.get("https://haiji.io/get_way_out.php", headers=headers)
+        rep = requests.get(own_srv_url, headers=headers)
         if rep.status_code != 200:
             logger.error(u"站点访问异常，无法获取出口IP，状态码为 {}".format(rep.status_code))
             result = {"status": "wrong", "msg": "http_status"}
@@ -217,7 +226,6 @@ def updateRecord(rootdomain, recordid, host, recordtype, value, secret_id, secre
 
 
 if __name__ == "__main__":
-    # LOGFILE = '%s/dns.log' % os.path.abspath(os.path.dirname(__file__))
     # 获取命令行参数
     parsers = argparse.ArgumentParser()
     parsers.add_argument("--secret_id", type=str, help="腾讯云API SECRET ID")
@@ -242,6 +250,7 @@ if __name__ == "__main__":
     logger = appLog("ORAY_INSTEAD", LOGFILE)
 
     dst_hosts = [HOST]
+    wait_interval = 10
     # 初始化检测 当前出口IP与云端IP异同
     now_ip = getOwnIp(logger, RECEIVERS=RECEIVERS)
     if now_ip["status"] == "ok":
@@ -255,18 +264,17 @@ if __name__ == "__main__":
                                            logger)
                         if res["codeDesc"] == "Success":
                             logger.info("初始化 解析更新成功 新IP为:{}".format(now_ip["ip"]))
-                            time.sleep(300)
+                            time.sleep(wait_interval)
                     else:
                         logger.info("初始化成功 当前IP为:{}".format(now_ip["ip"]))
-                        time.sleep(300)
+                        time.sleep(wait_interval)
     else:
         if now_ip["msg"] == "exception":
-            time.sleep(600)
+            time.sleep(wait_interval)
         else:
-            time.sleep(10)
+            time.sleep(wait_interval)
 
     # 监控变化
-    wait_interval = 10
     while True:
         new_ip = getOwnIp(logger, RECEIVERS=RECEIVERS)
         if new_ip["status"] == "ok":
@@ -287,7 +295,4 @@ if __name__ == "__main__":
                 time.sleep(wait_interval)
 
         else:
-            if new_ip["msg"] == "exception":
-                time.sleep(wait_interval)
-            else:
-                time.sleep(wait_interval)
+            time.sleep(wait_interval)
