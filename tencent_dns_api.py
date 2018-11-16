@@ -266,13 +266,13 @@ if __name__ == "__main__":
 
     # 监控变化
     wait_interval = 10
-    exce_interval = 600
+    exce_interval = 30
     while True:
         new_ip = getOwnIp(logger, RECEIVERS=RECEIVERS)
         if new_ip["status"] == "ok":
             if now_ip["status"] == "ok" and new_ip["ip"] == now_ip["ip"]:
                 logger.info("解析未更新 当前IP为:{}".format(new_ip["ip"]))
-                time.sleep(int(random.random() * 500))
+                time.sleep(int(random.random() * 100))
                 pass
             else:
                 allSubDomains = getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, LOGFILE)
@@ -289,6 +289,6 @@ if __name__ == "__main__":
         else:
             if new_ip["msg"] == "exception":
                 time.sleep(exce_interval)
-                exce_interval += 60
+                exce_interval += 30
             else:
                 time.sleep(wait_interval)
