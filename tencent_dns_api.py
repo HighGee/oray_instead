@@ -279,7 +279,6 @@ if __name__ == "__main__":
         new_ip = getOwnIp(logger, RECEIVERS=RECEIVERS)
         if new_ip["status"] == "ok":
             if now_ip["status"] == "ok" and new_ip["ip"] == now_ip["ip"]:
-                logger.info("解析未更新 当前IP为:{}".format(new_ip["ip"]))
                 time.sleep(wait_interval)
             else:
                 allSubDomains = getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, LOGFILE)
