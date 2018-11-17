@@ -22,16 +22,16 @@ from email.mime.text import MIMEText
 from email.header import Header
 
 reload(sys)
-sys.setdefaultencoding('utf8')
+sys.setdefaultencoding("utf8")
 
 # 腾讯云API TOKEN信息
-requestMethod = 'POST'
-requestHost = 'cns.api.qcloud.com'
-requestPath = '/v2/index.php'
+requestMethod = "POST"
+requestHost = "cns.api.qcloud.com"
+requestPath = "/v2/index.php"
 
 # 出口获取地址
-own_srv_url = 'https://haiji.io/get_way_out.php'
-ipipnet_url = 'http://myip.ipip.net'
+own_srv_url = "https://haiji.io/get_way_out.php"
+ipipnet_url = "http://myip.ipip.net"
 
 """
 判断是否为邮箱地址
@@ -40,7 +40,7 @@ ipipnet_url = 'http://myip.ipip.net'
 
 class IsMail():
     def __init__(self):
-        self.p = re.compile(r'[^\._][\w\._-]+@(?:[A-Za-z0-9]+\.)+[A-Za-z]+$')
+        self.p = re.compile(r"[^\._][\w\._-]+@(?:[A-Za-z0-9]+\.)+[A-Za-z]+$")
 
     def ismail(self, str):
         res = self.p.match(str)
@@ -60,8 +60,8 @@ def appLog(appname, LOGFILE):
     logger.setLevel(logging.DEBUG)
 
     # 日志格式
-    formatter = logging.Formatter('%(asctime)s %(name)s %(filename)s %(levelname)s %(message)s')
-    formatter.datefmt = '%Y-%m-%d %H:%M:%S'
+    formatter = logging.Formatter("%(asctime)s %(name)s %(filename)s %(levelname)s %(message)s")
+    formatter.datefmt = "%Y-%m-%d %H:%M:%S"
 
     file_handler = logging.FileHandler(LOGFILE)
     file_handler.setFormatter(formatter)
@@ -79,26 +79,26 @@ def send_errmsg(receiver, title=None, content=None):
     is_email = IsMail()
     if is_email.ismail(receiver[0]):
         if title is None:
-            title = u'OI出口获取异常通知'
+            title = u"OI出口获取异常通知"
         if content is None:
             content = requests.get(ipipnet_url).content
-        msg = MIMEText(content, 'html', _charset='utf-8')
-        me = 'OI@highgee.com'
-        msg['Subject'] = Header(title, charset='utf-8')
-        msg['From'] = me
-        msg['To'] = ';'.join(receiver)
+        msg = MIMEText(content, "html", _charset="utf-8")
+        me = "OI@highgee.com"
+        msg["Subject"] = Header(title, charset="utf-8")
+        msg["From"] = me
+        msg["To"] = ";".join(receiver)
 
-        s = smtplib.SMTP('localhost')
+        s = smtplib.SMTP("localhost")
         s.sendmail(me, receiver, msg.as_string())
         s.quit()
     else:
-        logger.error(u'邮件通知失败，目标邮箱：%s' % ';'.join(receiver))
+        logger.error(u"邮件通知失败，目标邮箱：%s" % ";".join(receiver))
 
 
 def mail_mass(RECEIVERS, title=None, content=None):
     if RECEIVERS is not None:
-        if ';' in RECEIVERS:
-            for email in RECEIVERS.split(';'):
+        if ";" in RECEIVERS:
+            for email in RECEIVERS.split(";"):
                 send_errmsg([email], title=title, content=content)
         else:
             send_errmsg([RECEIVERS], title=title, content=content)
@@ -144,7 +144,7 @@ def getOwnIp(logger, RECEIVERS=None):
 def makePlainText(requestMethod, requestHost, requestPath, params):
     str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
 
-    source = '%s%s%s?%s' % (
+    source = "%s%s%s?%s" % (
         requestMethod.upper(),
         requestHost,
         requestPath,
@@ -174,7 +174,7 @@ def getSubDomains(rootDomain, secret_id, secret_key, logger):
 
     signText = sign(requestMethod, requestHost, requestPath, params, secret_key)
 
-    params['Signature'] = signText
+    params["Signature"] = signText
 
     headers = {"Content-type": "application/x-www-form-urlencoded",
                "Accept": "text/plain"}
@@ -184,10 +184,10 @@ def getSubDomains(rootDomain, secret_id, secret_key, logger):
     try:
         httpsConn = httplib.HTTPSConnection(host=requestHost, port=443)
         if requestMethod == "GET":
-            params['Signature'] = urllib.quote(signText)
+            params["Signature"] = urllib.quote(signText)
 
             str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
-            url = 'https://%s%s?%s' % (requestHost, requestPath, str_params)
+            url = "https://%s%s?%s" % (requestHost, requestPath, str_params)
             httpsConn.request("GET", url)
         elif requestMethod == "POST":
             params = urllib.urlencode(params)
@@ -231,7 +231,7 @@ def updateRecord(rootdomain, recordid, host, recordtype, value, secret_id, secre
 
     signText = sign(requestMethod, requestHost, requestPath, params, secret_key)
 
-    params['Signature'] = signText
+    params["Signature"] = signText
 
     headers = {"Content-type": "application/x-www-form-urlencoded",
                "Accept": "text/plain"}
@@ -241,10 +241,10 @@ def updateRecord(rootdomain, recordid, host, recordtype, value, secret_id, secre
     try:
         httpsConn = httplib.HTTPSConnection(host=requestHost, port=443)
         if requestMethod == "GET":
-            params['Signature'] = urllib.quote(signText)
+            params["Signature"] = urllib.quote(signText)
 
             str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
-            url = 'https://%s%s?%s' % (requestHost, requestPath, str_params)
+            url = "https://%s%s?%s" % (requestHost, requestPath, str_params)
             httpsConn.request("GET", url)
         elif requestMethod == "POST":
             params = urllib.urlencode(params)
@@ -283,7 +283,7 @@ if __name__ == "__main__":
     LOGFILE = FLAGS.logfile
 
     if LOGFILE is None:
-        LOGFILE = '%s/dns.log' % os.path.abspath(os.path.dirname(__file__))
+        LOGFILE = "%s/dns.log" % os.path.abspath(os.path.dirname(__file__))
 
     logger = appLog("ORAY_INSTEAD", LOGFILE)
 
@@ -292,7 +292,7 @@ if __name__ == "__main__":
     # 初始化检测 当前出口IP与云端IP异同
     now_ip = getOwnIp(logger, RECEIVERS=RECEIVERS)
     if now_ip["status"] == "ok":
-        now_nsip = ''
+        now_nsip = ""
         for record in getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, logger)["data"]["records"]:
             for host in dst_hosts:
                 if host == record["name"]:
