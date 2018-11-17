@@ -1,4 +1,4 @@
-# oray_instead V 1.0.3 描述
+# oray_instead V 1.1.0 描述
 出于下述原因，开发了简单的，类似ORAY的DDNS功能:<br/>
 1.ORAY对普通用户不友好,免费版经常崩;<br/>
 2.DDNS需求;<br/><br/>
@@ -7,11 +7,10 @@
 # 工具
     dnspod@腾讯云
 # 实现功能
-对于有独立公网IP的用户,可以放在本地的服务器上运行,更新出口公网IP与腾讯云解析（DNSPOD）记录的对应关系.<br/>
+对于有独立公网IP的用户,可以放在本地的服务器上运行,更新本地出口公网IP与腾讯云解析（DNSPOD）记录的对应关系.<br/>
 比如，我的需求是www.example.com和download.example.com均解析至出口IP;<br/>
-则建立transpon.example.com子域名，并将www和download 通过CNAME 解析其上;<br/>
-再在本地通过此程序进行监控及更新即可;<br/>
-每次更新后，暂停(1,500)范围内随机秒;<br/>
+则建立transpond.example.com子域名，并将www和download 通过CNAME 解析其上;<br/>
+再在服务端通过此程序进行监控出口IP的变化及更新transpond子域名的解析记录即可;<br/>
 <br/>
 # 使用方法：SHELL后台运行
 git clone https://github.com/HighGee/oray_instead.git <br/>
