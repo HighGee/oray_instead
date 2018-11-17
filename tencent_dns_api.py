@@ -2,12 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Author: HaiJi.Wang
-Date: 2018-11-16
 """
 import sys
-
-reload(sys)
-sys.setdefaultencoding('utf8')
 import urllib
 import os
 import httplib
@@ -24,6 +20,9 @@ import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.header import Header
+
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 # 腾讯云API TOKEN信息
 requestMethod = 'POST'
