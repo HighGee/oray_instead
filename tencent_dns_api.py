@@ -34,6 +34,10 @@ requestPath = '/v2/index.php'
 own_srv_url = 'https://haiji.io/get_way_out.php'
 ipipnet_url = 'http://myip.ipip.net'
 
+"""
+判断是否为邮箱地址
+"""
+
 
 class IsMail():
     def __init__(self):
@@ -45,6 +49,11 @@ class IsMail():
             return True
         else:
             return False
+
+
+"""
+日志模块
+"""
 
 
 def appLog(appname, LOGFILE):
@@ -62,18 +71,43 @@ def appLog(appname, LOGFILE):
     return logger
 
 
-def way_notice(receiver):
-    title = u'OI出口获取异常通知'
-    content = requests.get(ipipnet_url).content
-    msg = MIMEText(content, 'html', _charset='utf-8')
-    me = 'OI@highgee.com'
-    msg['Subject'] = Header(title, charset='utf-8')
-    msg['From'] = me
-    msg['To'] = ';'.join(receiver)
+"""
+邮件通知模块
+"""
 
-    s = smtplib.SMTP('localhost')
-    s.sendmail(me, receiver, msg.as_string())
-    s.quit()
+
+def send_errmsg(receiver, title=None, content=None):
+    is_email = IsMail()
+    if is_email.ismail(receiver[0]):
+        if title is None:
+            title = u'OI出口获取异常通知'
+        if content is None:
+            content = requests.get(ipipnet_url).content
+        msg = MIMEText(content, 'html', _charset='utf-8')
+        me = 'OI@highgee.com'
+        msg['Subject'] = Header(title, charset='utf-8')
+        msg['From'] = me
+        msg['To'] = ';'.join(receiver)
+
+        s = smtplib.SMTP('localhost')
+        s.sendmail(me, receiver, msg.as_string())
+        s.quit()
+    else:
+        logger.error(u'邮件通知失败，目标邮箱：%s' % ';'.join(receiver))
+
+
+def mail_mass(RECEIVERS, title=None, content=None):
+    if RECEIVERS is not None:
+        if ';' in RECEIVERS:
+            for email in RECEIVERS.split(';'):
+                send_errmsg([email], title=title, content=content)
+        else:
+            send_errmsg([RECEIVERS], title=title, content=content)
+
+
+"""
+出口IP获取模块
+"""
 
 
 def getOwnIp(logger, RECEIVERS=None):
@@ -83,29 +117,29 @@ def getOwnIp(logger, RECEIVERS=None):
         if rep.status_code != 200:
             logger.error(u"站点访问异常，无法获取出口IP，状态码为 {}".format(rep.status_code))
             result = {"status": "wrong", "msg": "http_status"}
+            ban_codes = [403, 521, 555]
+            err_codes = [404, 502, 504]
+            if rep.status_code in ban_codes:
+                ban_title = u"请求被拦截，状态码为{}".format(rep.status_code)
+            elif rep.status_code in err_codes:
+                ban_title = u"源站或异常，状态码为{}".format(rep.status_code)
+            else:
+                ban_title = u"未收录异常，状态码为{}".format(rep.status_code)
+
+            mail_mass(RECEIVERS, ban_title)
         else:
             my_ip = json.loads(rep.content)["client_ip"]
             result = {"status": "ok", "ip": my_ip}
     except Exception, e:
         logger.error(u"当前网络异常，无法获取出口IP，{}".format(e))
-        ismail = IsMail()
-        rec_failed = []
-        if RECEIVERS is not None:
-            if ';' in RECEIVERS:
-                for email in RECEIVERS.split(';'):
-                    if ismail.ismail(email):
-                        way_notice([email])
-                    else:
-                        rec_failed.append(email)
-            else:
-                if ismail.ismail(RECEIVERS):
-                    way_notice([RECEIVERS])
-                else:
-                    rec_failed.append(RECEIVERS)
-        if len(rec_failed) != 0:
-            logger.error(u'邮件通知失败，%s' % ';'.join(rec_failed))
+        mail_mass(RECEIVERS)
         result = {"status": "wrong", "msg": "exception"}
     return result
+
+
+"""
+腾讯云API 相关
+"""
 
 
 def makePlainText(requestMethod, requestHost, requestPath, params):
@@ -171,6 +205,11 @@ def getSubDomains(rootDomain, secret_id, secret_key, logger):
     finally:
         if httpsConn:
             httpsConn.close()
+
+
+"""
+更新DNS记录
+"""
 
 
 def updateRecord(rootdomain, recordid, host, recordtype, value, secret_id, secret_key, logger):
@@ -294,4 +333,7 @@ if __name__ == "__main__":
                 time.sleep(wait_interval)
 
         else:
-            time.sleep(wait_interval)
+            if new_ip["status"] == "wrong" and new_ip["msg"] == "http_status":
+                time.sleep(wait_interval * 60)
+            else:
+                time.sleep(wait_interval)
