@@ -30,15 +30,15 @@ requestHost = "cns.api.qcloud.com"
 requestPath = "/v2/index.php"
 
 # 出口获取地址
-own_srv_url = "https://haiji.io/get_way_out.php"
-ipipnet_url = "http://myip.ipip.net"
-
-"""
-判断是否为邮箱地址
-"""
+ownSrvUrl = "https://haiji.io/get_way_out.php"
+ipipNetUrl = "http://myip.ipip.net"
 
 
 class IsMail():
+    """
+    判断是否为邮箱地址
+    """
+
     def __init__(self):
         self.p = re.compile(r"[^\._][\w\._-]+@(?:[A-Za-z0-9]+\.)+[A-Za-z]+$")
 
@@ -50,40 +50,36 @@ class IsMail():
             return False
 
 
-"""
-日志模块
-"""
-
-
-def appLog(appname, LOGFILE):
-    logger = logging.getLogger(appname)
-    logger.setLevel(logging.DEBUG)
+def appLog(app_name, log_file):
+    """
+    日志模块
+    """
+    log_instance = logging.getLogger(app_name)
+    log_instance.setLevel(logging.DEBUG)
 
     # 日志格式
     formatter = logging.Formatter("%(asctime)s %(name)s %(filename)s %(levelname)s %(message)s")
     formatter.datefmt = "%Y-%m-%d %H:%M:%S"
 
-    file_handler = logging.FileHandler(LOGFILE)
+    file_handler = logging.FileHandler(log_file)
     file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    log_instance.addHandler(file_handler)
 
-    return logger
-
-
-"""
-邮件通知模块
-"""
+    return log_instance
 
 
-def send_errmsg(receiver, title=None, content=None):
+def send_errmsg(receiver, log_instance, title=None, content=None):
+    """
+    邮件通知模块
+    """
     is_email = IsMail()
     if is_email.ismail(receiver[0]):
         if title is None:
-            title = u"OI出口获取异常通知"
+            title = u"[故障]出口IP获取异常"
         if content is None:
-            content = requests.get(ipipnet_url).content
+            content = requests.get(ipipNetUrl).content
         msg = MIMEText(content, "html", _charset="utf-8")
-        me = "OI@highgee.com"
+        me = "OrayInstead@haiji.io"
         msg["Subject"] = Header(title, charset="utf-8")
         msg["From"] = me
         msg["To"] = ";".join(receiver)
@@ -92,16 +88,16 @@ def send_errmsg(receiver, title=None, content=None):
         s.sendmail(me, receiver, msg.as_string())
         s.quit()
     else:
-        logger.error(u"邮件通知失败，目标邮箱：%s" % ";".join(receiver))
+        log_instance.error(u"邮件通知失败，目标邮箱：%s" % ";".join(receiver))
 
 
-def mail_mass(RECEIVERS, title=None, content=None):
-    if RECEIVERS is not None:
-        if ";" in RECEIVERS:
-            for email in RECEIVERS.split(";"):
+def mail_mass(receivers, title=None, content=None):
+    if receivers is not None:
+        if ";" in receivers:
+            for email in receivers.split(";"):
                 send_errmsg([email], title=title, content=content)
         else:
-            send_errmsg([RECEIVERS], title=title, content=content)
+            send_errmsg([receivers], title=title, content=content)
 
 
 """
@@ -109,28 +105,28 @@ def mail_mass(RECEIVERS, title=None, content=None):
 """
 
 
-def getOwnIp(logger, RECEIVERS=None):
+def get_local_ip(log_instance, RECEIVERS=None):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:16.0) Gecko/20100101 Firefox/16.0"}
     try:
-        rep = requests.get(own_srv_url, headers=headers)
+        rep = requests.get(ownSrvUrl, headers=headers)
         if rep.status_code != 200:
-            logger.error(u"站点访问异常，无法获取出口IP，状态码为 {}".format(rep.status_code))
+            log_instance.error(u"站点访问异常，无法获取出口IP，状态码为 {}".format(rep.status_code))
             result = {"status": "wrong", "msg": "http_status"}
             ban_codes = [403, 521, 555]
             err_codes = [404, 502, 504]
             if rep.status_code in ban_codes:
-                ban_title = u"请求被拦截，状态码为{}".format(rep.status_code)
+                ban_title = u"[拦截]出口IP获取异常，状态码为{}".format(rep.status_code)
             elif rep.status_code in err_codes:
-                ban_title = u"源站或异常，状态码为{}".format(rep.status_code)
+                ban_title = u"[故障]出口IP获取异常，状态码为{}".format(rep.status_code)
             else:
-                ban_title = u"未收录异常，状态码为{}".format(rep.status_code)
+                ban_title = u"[未知]出口IP获取异常，状态码为{}".format(rep.status_code)
 
             mail_mass(RECEIVERS, ban_title)
         else:
             my_ip = json.loads(rep.content)["client_ip"]
             result = {"status": "ok", "ip": my_ip}
     except Exception, e:
-        logger.error(u"当前网络异常，无法获取出口IP，{}".format(e))
+        log_instance.error(u"当前网络异常，无法获取出口IP，{}".format(e))
         mail_mass(RECEIVERS)
         result = {"status": "wrong", "msg": "exception"}
     return result
@@ -159,7 +155,10 @@ def sign(requestMethod, requestHost, requestPath, params, secretKey):
     return binascii.b2a_base64(hashed.digest())[:-1]
 
 
-def getSubDomains(rootDomain, secret_id, secret_key, logger):
+def getSubDomains(rootDomain, secret_id, secret_key, log_instance):
+    """
+    获取所有子域名
+    """
     # 请求参数
     base_arg = {
         "Timestamp": int(time.time()),
@@ -172,9 +171,9 @@ def getSubDomains(rootDomain, secret_id, secret_key, logger):
     })
     params = base_arg
 
-    signText = sign(requestMethod, requestHost, requestPath, params, secret_key)
+    sing_text = sign(requestMethod, requestHost, requestPath, params, secret_key)
 
-    params["Signature"] = signText
+    params["Signature"] = sing_text
 
     headers = {"Content-type": "application/x-www-form-urlencoded",
                "Accept": "text/plain"}
@@ -184,7 +183,7 @@ def getSubDomains(rootDomain, secret_id, secret_key, logger):
     try:
         httpsConn = httplib.HTTPSConnection(host=requestHost, port=443)
         if requestMethod == "GET":
-            params["Signature"] = urllib.quote(signText)
+            params["Signature"] = urllib.quote(sing_text)
 
             str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
             url = "https://%s%s?%s" % (requestHost, requestPath, str_params)
@@ -200,18 +199,16 @@ def getSubDomains(rootDomain, secret_id, secret_key, logger):
         return jsonRet
 
     except Exception, e:
-        logger.error(u"{}".format(e))
+        log_instance.error(u"{}".format(e))
     finally:
         if httpsConn:
             httpsConn.close()
 
 
-"""
-更新DNS记录
-"""
-
-
-def updateRecord(rootdomain, recordid, host, recordtype, value, secret_id, secret_key, logger):
+def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secret_key, log_instance):
+    """
+    更新DNS解析记录
+    """
     # 请求参数
     base_arg = {
         "Timestamp": int(time.time()),
@@ -229,9 +226,9 @@ def updateRecord(rootdomain, recordid, host, recordtype, value, secret_id, secre
     })
     params = base_arg
 
-    signText = sign(requestMethod, requestHost, requestPath, params, secret_key)
+    sing_text = sign(requestMethod, requestHost, requestPath, params, secret_key)
 
-    params["Signature"] = signText
+    params["Signature"] = sing_text
 
     headers = {"Content-type": "application/x-www-form-urlencoded",
                "Accept": "text/plain"}
@@ -241,7 +238,7 @@ def updateRecord(rootdomain, recordid, host, recordtype, value, secret_id, secre
     try:
         httpsConn = httplib.HTTPSConnection(host=requestHost, port=443)
         if requestMethod == "GET":
-            params["Signature"] = urllib.quote(signText)
+            params["Signature"] = urllib.quote(sing_text)
 
             str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
             url = "https://%s%s?%s" % (requestHost, requestPath, str_params)
@@ -257,7 +254,7 @@ def updateRecord(rootdomain, recordid, host, recordtype, value, secret_id, secre
         return jsonRet
 
     except Exception, e:
-        logger.error(u"{}".format(e))
+        log_instance.error(u"{}".format(e))
     finally:
         if httpsConn:
             httpsConn.close()
@@ -272,7 +269,7 @@ if __name__ == "__main__":
     parsers.add_argument("--host", type=str, help="指定解析转发的子域名")
     parsers.add_argument("--receivers", type=str,
                          help="指定程序异常时的消息接收人,--receivers \"email1@example.com;email2@example1.com\"")
-    parsers.add_argument("--logfile", type=str, help="日志文件的绝对路径，默认脚本所在路径下dns.log")
+    parsers.add_argument("--logfile", type=str, help="日志文件名称，默认dns.log")
     FLAGS, unparsed = parsers.parse_known_args()
 
     SecretID = FLAGS.secret_id
@@ -280,31 +277,33 @@ if __name__ == "__main__":
     ROOT_DOMAIN = FLAGS.root_domain
     RECEIVERS = FLAGS.receivers
     HOST = FLAGS.host
-    LOGFILE = FLAGS.logfile
+    log_file = FLAGS.logfile
 
-    if LOGFILE is None:
-        LOGFILE = "%s/dns.log" % os.path.abspath(os.path.dirname(__file__))
+    if log_file is None:
+        log_file = "%s/dns.log" % os.path.abspath(os.path.dirname(__file__))
+    else:
+        log_file = "%s/{}" % os.path.abspath(os.path.dirname(__file__))
 
-    logger = appLog("ORAY_INSTEAD", LOGFILE)
+    log_instance = appLog("ORAY_INSTEAD", log_file)
 
     dst_hosts = [HOST]
     wait_interval = 10
     # 初始化检测 当前出口IP与云端IP异同
-    now_ip = getOwnIp(logger, RECEIVERS=RECEIVERS)
+    now_ip = get_local_ip(log_instance, RECEIVERS=RECEIVERS)
     if now_ip["status"] == "ok":
         now_nsip = ""
-        for record in getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, logger)["data"]["records"]:
+        for record in getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, log_instance)["data"]["records"]:
             for host in dst_hosts:
                 if host == record["name"]:
                     now_nsip = record["value"]
                     if now_ip["ip"] != now_nsip:
-                        res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", now_ip["ip"], SecretID, SecretKEY,
-                                           logger)
+                        res = update_record(ROOT_DOMAIN, record["id"], host, "A", now_ip["ip"], SecretID, SecretKEY,
+                                            log_instance)
                         if res["codeDesc"] == "Success":
-                            logger.info("初始化 解析更新成功 新IP为:{}".format(now_ip["ip"]))
+                            log_instance.info("初始化 解析更新成功 新IP为:{}".format(now_ip["ip"]))
                             time.sleep(wait_interval)
                     else:
-                        logger.info("初始化成功 当前IP为:{}".format(now_ip["ip"]))
+                        log_instance.info("初始化成功 当前IP为:{}".format(now_ip["ip"]))
                         time.sleep(wait_interval)
     else:
         if now_ip["msg"] == "exception":
@@ -314,21 +313,21 @@ if __name__ == "__main__":
 
     # 监控变化
     while True:
-        new_ip = getOwnIp(logger, RECEIVERS=RECEIVERS)
+        new_ip = get_local_ip(log_instance, RECEIVERS=RECEIVERS)
         if new_ip["status"] == "ok":
             if now_ip["status"] == "ok" and new_ip["ip"] == now_ip["ip"]:
                 time.sleep(wait_interval)
             else:
-                allSubDomains = getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, LOGFILE)
+                allSubDomains = getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, log_file)
                 for record in allSubDomains["data"]["records"]:
                     for host in dst_hosts:
                         if host == record["name"]:
-                            res = updateRecord(ROOT_DOMAIN, record["id"], host, "A", new_ip["ip"], SecretID, SecretKEY,
-                                               LOGFILE)
+                            res = update_record(ROOT_DOMAIN, record["id"], host, "A", new_ip["ip"], SecretID, SecretKEY,
+                                                log_file)
                             if res["codeDesc"] == "Success":
                                 now_ip["ip"] = new_ip["ip"]
                                 now_ip["status"] = "ok"
-                                logger.info("解析更新成功 新IP为:{}".format(new_ip["ip"]))
+                                log_instance.info("解析更新成功 新IP为:{}".format(new_ip["ip"]))
                 time.sleep(wait_interval)
 
         else:
