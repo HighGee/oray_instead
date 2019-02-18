@@ -17,6 +17,7 @@ import json
 import re
 import argparse
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import smtplib
 from email.mime.text import MIMEText
 from email.header import Header
@@ -61,7 +62,7 @@ def appLog(app_name, log_file):
     formatter = logging.Formatter("%(asctime)s %(name)s %(filename)s %(levelname)s %(message)s")
     formatter.datefmt = "%Y-%m-%d %H:%M:%S"
 
-    file_handler = logging.FileHandler(log_file)
+    file_handler = TimedRotatingFileHandler(log_file, when='H', backupCount=15 * 24)
     file_handler.setFormatter(formatter)
     log_instance.addHandler(file_handler)
 
@@ -317,6 +318,7 @@ if __name__ == "__main__":
         if new_ip["status"] == "ok":
             if now_ip["status"] == "ok" and new_ip["ip"] == now_ip["ip"]:
                 time.sleep(wait_interval)
+                log_instance.info("解析未更新 IP无变化")
             else:
                 allSubDomains = getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, log_file)
                 for record in allSubDomains["data"]["records"]:
@@ -329,9 +331,11 @@ if __name__ == "__main__":
                                 now_ip["status"] = "ok"
                                 log_instance.info("解析更新成功 新IP为:{}".format(new_ip["ip"]))
                 time.sleep(wait_interval)
-
         else:
             if new_ip["status"] == "wrong" and new_ip["msg"] == "http_status":
+                log_instance.info("获取外网异常-开始等待")
                 time.sleep(wait_interval * 60)
+                log_instance.info("获取外网异常-等待结束")
             else:
                 time.sleep(wait_interval)
+                log_instance.info("未知异常异常-直接重试")
