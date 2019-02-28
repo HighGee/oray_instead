@@ -45,7 +45,7 @@ if __name__ == "__main__":
     log_instance = own_log("ORAY_INSTEAD", log_file)
 
     dst_hosts = [HOST]
-    wait_interval = 10
+    wait_interval = 1
     # 初始化检测 当前出口IP与云端IP异同
     now_ip = get_local_ip(log_instance, RECEIVERS=RECEIVERS)
     if now_ip["status"] == "ok":
