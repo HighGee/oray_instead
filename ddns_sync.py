@@ -26,9 +26,9 @@ reload(sys)
 sys.setdefaultencoding("utf8")
 
 # 腾讯云API TOKEN信息
-requestMethod = "POST"
-requestHost = "cns.api.qcloud.com"
-requestPath = "/v2/index.php"
+request_method = "POST"
+requet_host = "cns.api.qcloud.com"
+request_path = "/v2/index.php"
 
 # 出口获取地址
 ownSrvUrl = "https://haiji.io/get_way_out.php"
@@ -51,7 +51,7 @@ class IsMail():
             return False
 
 
-def appLog(app_name, log_file):
+def own_log(app_name, log_file):
     """
     日志模块
     """
@@ -62,7 +62,7 @@ def appLog(app_name, log_file):
     formatter = logging.Formatter("%(asctime)s %(name)s %(filename)s %(levelname)s %(message)s")
     formatter.datefmt = "%Y-%m-%d %H:%M:%S"
 
-    file_handler = TimedRotatingFileHandler(log_file, when='H', backupCount=15 * 24)
+    file_handler = TimedRotatingFileHandler(log_file, when='D', backupCount=30)
     file_handler.setFormatter(formatter)
     log_instance.addHandler(file_handler)
 
@@ -138,20 +138,20 @@ def get_local_ip(log_instance, RECEIVERS=None):
 """
 
 
-def makePlainText(requestMethod, requestHost, requestPath, params):
+def make_plain_text(request_method, requet_host, request_path, params):
     str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
 
     source = "%s%s%s?%s" % (
-        requestMethod.upper(),
-        requestHost,
-        requestPath,
+        request_method.upper(),
+        requet_host,
+        request_path,
         str_params
     )
     return source
 
 
-def sign(requestMethod, requestHost, requestPath, params, secretKey):
-    source = makePlainText(requestMethod, requestHost, requestPath, params)
+def sign(request_method, requet_host, request_path, params, secretKey):
+    source = make_plain_text(request_method, requet_host, request_path, params)
     hashed = hmac.new(secretKey, source, hashlib.sha1)
     return binascii.b2a_base64(hashed.digest())[:-1]
 
@@ -172,7 +172,7 @@ def getSubDomains(rootDomain, secret_id, secret_key, log_instance):
     })
     params = base_arg
 
-    sing_text = sign(requestMethod, requestHost, requestPath, params, secret_key)
+    sing_text = sign(request_method, requet_host, request_path, params, secret_key)
 
     params["Signature"] = sing_text
 
@@ -180,20 +180,20 @@ def getSubDomains(rootDomain, secret_id, secret_key, log_instance):
                "Accept": "text/plain"}
 
     # 发送请求
-    httpsConn = None
+    https_conn = None
     try:
-        httpsConn = httplib.HTTPSConnection(host=requestHost, port=443)
-        if requestMethod == "GET":
+        https_conn = httplib.HTTPSConnection(host=requet_host, port=443)
+        if request_method == "GET":
             params["Signature"] = urllib.quote(sing_text)
 
             str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
-            url = "https://%s%s?%s" % (requestHost, requestPath, str_params)
-            httpsConn.request("GET", url)
-        elif requestMethod == "POST":
+            url = "https://%s%s?%s" % (requet_host, request_path, str_params)
+            https_conn.request("GET", url)
+        elif request_method == "POST":
             params = urllib.urlencode(params)
-            httpsConn.request("POST", requestPath, params, headers)
+            https_conn.request("POST", request_path, params, headers)
 
-        response = httpsConn.getresponse()
+        response = https_conn.getresponse()
         data = response.read()
         # print data
         jsonRet = json.loads(data)
@@ -202,8 +202,8 @@ def getSubDomains(rootDomain, secret_id, secret_key, log_instance):
     except Exception, e:
         log_instance.error(u"{}".format(e))
     finally:
-        if httpsConn:
-            httpsConn.close()
+        if https_conn:
+            https_conn.close()
 
 
 def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secret_key, log_instance):
@@ -227,7 +227,7 @@ def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secr
     })
     params = base_arg
 
-    sing_text = sign(requestMethod, requestHost, requestPath, params, secret_key)
+    sing_text = sign(request_method, requet_host, request_path, params, secret_key)
 
     params["Signature"] = sing_text
 
@@ -235,20 +235,20 @@ def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secr
                "Accept": "text/plain"}
 
     # 发送请求
-    httpsConn = None
+    https_conn = None
     try:
-        httpsConn = httplib.HTTPSConnection(host=requestHost, port=443)
-        if requestMethod == "GET":
+        https_conn = httplib.HTTPSConnection(host=requet_host, port=443)
+        if request_method == "GET":
             params["Signature"] = urllib.quote(sing_text)
 
             str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
-            url = "https://%s%s?%s" % (requestHost, requestPath, str_params)
-            httpsConn.request("GET", url)
-        elif requestMethod == "POST":
+            url = "https://%s%s?%s" % (requet_host, request_path, str_params)
+            https_conn.request("GET", url)
+        elif request_method == "POST":
             params = urllib.urlencode(params)
-            httpsConn.request("POST", requestPath, params, headers)
+            https_conn.request("POST", request_path, params, headers)
 
-        response = httpsConn.getresponse()
+        response = https_conn.getresponse()
         data = response.read()
         # print data
         jsonRet = json.loads(data)
@@ -257,8 +257,8 @@ def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secr
     except Exception, e:
         log_instance.error(u"{}".format(e))
     finally:
-        if httpsConn:
-            httpsConn.close()
+        if https_conn:
+            https_conn.close()
 
 
 if __name__ == "__main__":
@@ -285,7 +285,7 @@ if __name__ == "__main__":
     else:
         log_file = "%s/{}" % os.path.abspath(os.path.dirname(__file__))
 
-    log_instance = appLog("ORAY_INSTEAD", log_file)
+    log_instance = own_log("ORAY_INSTEAD", log_file)
 
     dst_hosts = [HOST]
     wait_interval = 10
