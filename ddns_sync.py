@@ -80,7 +80,8 @@ if __name__ == "__main__":
                 time.sleep(wait_interval)
                 log_instance.info("解析未更新 IP无变化")
             else:
-                allSubDomains = getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, log_file)
+                allSubDomains = getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, log_file, request_method, requet_host,
+                                              request_path)
                 for record in allSubDomains["data"]["records"]:
                     for host in dst_hosts:
                         if host == record["name"]:
