@@ -4,264 +4,21 @@
 Author: HaiJi.Wang
 """
 import sys
-import urllib
 import os
-import httplib
-import binascii
-import hashlib
-import requests
-import hmac
 import time
-import random
-import json
-import re
 import argparse
-import logging
-from logging.handlers import TimedRotatingFileHandler
-import smtplib
-from email.mime.text import MIMEText
-from email.header import Header
+from cause.myip import get_local_ip
+from cause.log_handler import own_log
+from cause.tencent_api_handler import update_record, getSubDomains
 
 reload(sys)
 sys.setdefaultencoding("utf8")
 
-# 腾讯云API TOKEN信息
-request_method = "POST"
-requet_host = "cns.api.qcloud.com"
-request_path = "/v2/index.php"
-
-# 出口获取地址
-ownSrvUrl = "https://haiji.io/get_way_out.php"
-ipipNetUrl = "http://myip.ipip.net"
-
-
-class IsMail():
-    """
-    判断是否为邮箱地址
-    """
-
-    def __init__(self):
-        self.p = re.compile(r"[^\._][\w\._-]+@(?:[A-Za-z0-9]+\.)+[A-Za-z]+$")
-
-    def ismail(self, str):
-        res = self.p.match(str)
-        if res:
-            return True
-        else:
-            return False
-
-
-def own_log(app_name, log_file):
-    """
-    日志模块
-    """
-    log_instance = logging.getLogger(app_name)
-    log_instance.setLevel(logging.DEBUG)
-
-    # 日志格式
-    formatter = logging.Formatter("%(asctime)s %(name)s %(filename)s %(levelname)s %(message)s")
-    formatter.datefmt = "%Y-%m-%d %H:%M:%S"
-
-    file_handler = TimedRotatingFileHandler(log_file, when='D', backupCount=30)
-    file_handler.setFormatter(formatter)
-    log_instance.addHandler(file_handler)
-
-    return log_instance
-
-
-def send_errmsg(receiver, log_instance, title=None, content=None):
-    """
-    邮件通知模块
-    """
-    is_email = IsMail()
-    if is_email.ismail(receiver[0]):
-        if title is None:
-            title = u"[故障]出口IP获取异常"
-        if content is None:
-            content = requests.get(ipipNetUrl).content
-        msg = MIMEText(content, "html", _charset="utf-8")
-        me = "OrayInstead@haiji.io"
-        msg["Subject"] = Header(title, charset="utf-8")
-        msg["From"] = me
-        msg["To"] = ";".join(receiver)
-
-        s = smtplib.SMTP("localhost")
-        s.sendmail(me, receiver, msg.as_string())
-        s.quit()
-    else:
-        log_instance.error(u"邮件通知失败，目标邮箱：%s" % ";".join(receiver))
-
-
-def mail_mass(receivers, title=None, content=None):
-    if receivers is not None:
-        if ";" in receivers:
-            for email in receivers.split(";"):
-                send_errmsg([email], title=title, content=content)
-        else:
-            send_errmsg([receivers], title=title, content=content)
-
-
-"""
-出口IP获取模块
-"""
-
-
-def get_local_ip(log_instance, RECEIVERS=None):
-    headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:16.0) Gecko/20100101 Firefox/16.0"}
-    try:
-        rep = requests.get(ownSrvUrl, headers=headers)
-        if rep.status_code != 200:
-            log_instance.error(u"站点访问异常，无法获取出口IP，状态码为 {}".format(rep.status_code))
-            result = {"status": "wrong", "msg": "http_status"}
-            ban_codes = [403, 521, 555]
-            err_codes = [404, 502, 504]
-            if rep.status_code in ban_codes:
-                ban_title = u"[拦截]出口IP获取异常，状态码为{}".format(rep.status_code)
-            elif rep.status_code in err_codes:
-                ban_title = u"[故障]出口IP获取异常，状态码为{}".format(rep.status_code)
-            else:
-                ban_title = u"[未知]出口IP获取异常，状态码为{}".format(rep.status_code)
-
-            mail_mass(RECEIVERS, ban_title)
-        else:
-            my_ip = json.loads(rep.content)["client_ip"]
-            result = {"status": "ok", "ip": my_ip}
-    except Exception, e:
-        log_instance.error(u"当前网络异常，无法获取出口IP，{}".format(e))
-        mail_mass(RECEIVERS)
-        result = {"status": "wrong", "msg": "exception"}
-    return result
-
-
-"""
-腾讯云API 相关
-"""
-
-
-def make_plain_text(request_method, requet_host, request_path, params):
-    str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
-
-    source = "%s%s%s?%s" % (
-        request_method.upper(),
-        requet_host,
-        request_path,
-        str_params
-    )
-    return source
-
-
-def sign(request_method, requet_host, request_path, params, secretKey):
-    source = make_plain_text(request_method, requet_host, request_path, params)
-    hashed = hmac.new(secretKey, source, hashlib.sha1)
-    return binascii.b2a_base64(hashed.digest())[:-1]
-
-
-def getSubDomains(rootDomain, secret_id, secret_key, log_instance):
-    """
-    获取所有子域名
-    """
-    # 请求参数
-    base_arg = {
-        "Timestamp": int(time.time()),
-        "Nonce": int(random.random()),
-        "SecretId": secret_id,
-    }
-    base_arg.update({
-        "domain": rootDomain,
-        "Action": "RecordList"
-    })
-    params = base_arg
-
-    sing_text = sign(request_method, requet_host, request_path, params, secret_key)
-
-    params["Signature"] = sing_text
-
-    headers = {"Content-type": "application/x-www-form-urlencoded",
-               "Accept": "text/plain"}
-
-    # 发送请求
-    https_conn = None
-    try:
-        https_conn = httplib.HTTPSConnection(host=requet_host, port=443)
-        if request_method == "GET":
-            params["Signature"] = urllib.quote(sing_text)
-
-            str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
-            url = "https://%s%s?%s" % (requet_host, request_path, str_params)
-            https_conn.request("GET", url)
-        elif request_method == "POST":
-            params = urllib.urlencode(params)
-            https_conn.request("POST", request_path, params, headers)
-
-        response = https_conn.getresponse()
-        data = response.read()
-        # print data
-        jsonRet = json.loads(data)
-        return jsonRet
-
-    except Exception, e:
-        log_instance.error(u"{}".format(e))
-    finally:
-        if https_conn:
-            https_conn.close()
-
-
-def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secret_key, log_instance):
-    """
-    更新DNS解析记录
-    """
-    # 请求参数
-    base_arg = {
-        "Timestamp": int(time.time()),
-        "Nonce": int(random.random()),
-        "SecretId": secret_id,
-    }
-    base_arg.update({
-        "domain": rootdomain,
-        "recordId": recordid,
-        "subDomain": host,
-        "recordType": recordtype,
-        "recordLine": "默认",
-        "value": value,
-        "Action": "RecordModify"
-    })
-    params = base_arg
-
-    sing_text = sign(request_method, requet_host, request_path, params, secret_key)
-
-    params["Signature"] = sing_text
-
-    headers = {"Content-type": "application/x-www-form-urlencoded",
-               "Accept": "text/plain"}
-
-    # 发送请求
-    https_conn = None
-    try:
-        https_conn = httplib.HTTPSConnection(host=requet_host, port=443)
-        if request_method == "GET":
-            params["Signature"] = urllib.quote(sing_text)
-
-            str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
-            url = "https://%s%s?%s" % (requet_host, request_path, str_params)
-            https_conn.request("GET", url)
-        elif request_method == "POST":
-            params = urllib.urlencode(params)
-            https_conn.request("POST", request_path, params, headers)
-
-        response = https_conn.getresponse()
-        data = response.read()
-        # print data
-        jsonRet = json.loads(data)
-        return jsonRet
-
-    except Exception, e:
-        log_instance.error(u"{}".format(e))
-    finally:
-        if https_conn:
-            https_conn.close()
-
-
 if __name__ == "__main__":
+    # 腾讯云API TOKEN信息
+    request_method = "POST"
+    requet_host = "cns.api.qcloud.com"
+    request_path = "/v2/index.php"
     # 获取命令行参数
     parsers = argparse.ArgumentParser()
     parsers.add_argument("--secret_id", type=str, help="腾讯云API SECRET ID")
@@ -281,9 +38,9 @@ if __name__ == "__main__":
     log_file = FLAGS.logfile
 
     if log_file is None:
-        log_file = "%s/dns.log" % os.path.abspath(os.path.dirname(__file__))
+        log_file = "%s/log/dns.log" % os.path.abspath(os.path.dirname(__file__))
     else:
-        log_file = "%s/{}" % os.path.abspath(os.path.dirname(__file__))
+        log_file = "%s/log/{}" % os.path.abspath(os.path.dirname(__file__))
 
     log_instance = own_log("ORAY_INSTEAD", log_file)
 
@@ -293,13 +50,16 @@ if __name__ == "__main__":
     now_ip = get_local_ip(log_instance, RECEIVERS=RECEIVERS)
     if now_ip["status"] == "ok":
         now_nsip = ""
-        for record in getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, log_instance)["data"]["records"]:
+        for record in \
+                getSubDomains(ROOT_DOMAIN, SecretID, SecretKEY, log_instance, request_method, requet_host,
+                              request_path)[
+                    "data"]["records"]:
             for host in dst_hosts:
                 if host == record["name"]:
                     now_nsip = record["value"]
                     if now_ip["ip"] != now_nsip:
                         res = update_record(ROOT_DOMAIN, record["id"], host, "A", now_ip["ip"], SecretID, SecretKEY,
-                                            log_instance)
+                                            log_instance, request_method, requet_host, request_path)
                         if res["codeDesc"] == "Success":
                             log_instance.info("初始化 解析更新成功 新IP为:{}".format(now_ip["ip"]))
                             time.sleep(wait_interval)
@@ -325,7 +85,7 @@ if __name__ == "__main__":
                     for host in dst_hosts:
                         if host == record["name"]:
                             res = update_record(ROOT_DOMAIN, record["id"], host, "A", new_ip["ip"], SecretID, SecretKEY,
-                                                log_file)
+                                                log_instance, request_method, requet_host, request_path)
                             if res["codeDesc"] == "Success":
                                 now_ip["ip"] = new_ip["ip"]
                                 now_ip["status"] = "ok"

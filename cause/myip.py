@@ -3,7 +3,7 @@
 # Date 2019-02-28 22:32
 import requests
 import json
-from .email import mail_mass
+from .email_handler import mail_mass
 
 """
 出口IP获取模块
