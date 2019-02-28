@@ -1,4 +1,4 @@
-# oray_instead V 1.1.0 描述
+# oray_instead V 1.2.0 描述
 出于下述原因，开发了简单的，类似ORAY的DDNS功能:<br/>
 1.ORAY对普通用户不友好,免费版经常崩;<br/>
 2.DDNS需求;<br/><br/>
@@ -14,11 +14,11 @@
 <br/>
 # 使用方法：SHELL后台运行
 git clone https://github.com/HighGee/oray_instead.git <br/>
-/bin/python -u /the/path/to/oray_instead/tencent_dns_api.py --root_domain example.com --host transpond --secret_id 腾讯云API_ID --secret_key 腾讯云API_KEY <br/><br/>
+/bin/python -u /the/path/to/oray_instead/ddns_sync.py --root_domain example.com --host transpond --secret_id 腾讯云API_ID --secret_key 腾讯云API_KEY <br/><br/>
 # 使用方法：进程托管
 git clone https://github.com/HighGee/oray_instead.git <br/>
 yum install supervisor -y<br/>
-#以具体个人需求编辑supervisord_extra.ini，并放至/etc/supervisord.d；<br/>
+#以具体个人需求编辑supervisord_extra.ini，并放至/etc/supervisord.d/；<br/>
 systemctl start supervisord <br/>
 systemctl enable supervisord <br/>
 #查看运行状态<br/>
