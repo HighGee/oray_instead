@@ -9,6 +9,10 @@ import random
 import urllib
 import json
 import httplib
+from cause.config import own_cfg
+from cause.log_handler import own_log
+
+tencent_logger = own_log("TENCENT_API", own_cfg.log_file)
 
 
 def make_plain_text(request_method, requet_host, request_path, params):
@@ -29,7 +33,7 @@ def sign(request_method, requet_host, request_path, params, secretKey):
     return binascii.b2a_base64(hashed.digest())[:-1]
 
 
-def getSubDomains(rootDomain, secret_id, secret_key, log_instance, request_method, requet_host, request_path):
+def getSubDomains(rootDomain, secret_id, secret_key, request_method, requet_host, request_path):
     """
     获取所有子域名
     """
@@ -73,13 +77,13 @@ def getSubDomains(rootDomain, secret_id, secret_key, log_instance, request_metho
         return jsonRet
 
     except Exception, e:
-        log_instance.error(u"{}".format(e))
+        tencent_logger.error(u"{}".format(e))
     finally:
         if https_conn:
             https_conn.close()
 
 
-def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secret_key, log_instance, request_method,
+def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secret_key, request_method,
                   requet_host, request_path):
     """
     更新DNS解析记录
@@ -129,7 +133,7 @@ def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secr
         return jsonRet
 
     except Exception, e:
-        log_instance.error(u"{}".format(e))
+        tencent_logger.error(u"{}".format(e))
     finally:
         if https_conn:
             https_conn.close()

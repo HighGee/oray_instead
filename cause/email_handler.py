@@ -6,6 +6,10 @@ import smtplib
 import requests
 from email.mime.text import MIMEText
 from email.header import Header
+from cause.log_handler import own_log
+from cause.config import own_cfg
+
+email_logger = own_log('EMAIL', own_cfg.log_file)
 
 
 class IsMail():
@@ -24,10 +28,11 @@ class IsMail():
             return False
 
 
-def send_errmsg(receiver, log_instance, title=None, content=None):
+def send_errmsg(receiver, title=None, content=None):
     """
     邮件通知模块
     """
+
     ipipNetUrl = "http://myip.ipip.net"
     is_email = IsMail()
     if is_email.ismail(receiver[0]):
@@ -48,19 +53,19 @@ def send_errmsg(receiver, log_instance, title=None, content=None):
             s = smtplib.SMTP("localhost")
             s.sendmail(me, receiver, msg.as_string())
             s.quit()
-        except:
-            log_instance.error(u"邮件通知失败，目标邮箱：%s" % ";".join(receiver))
+        except Exception, e:
+            email_logger.error(u"邮件通知失败，目标邮箱：%s %s" % (";".join(receiver), e))
     else:
-        log_instance.error(u"邮件通知失败，目标邮箱：%s" % ";".join(receiver))
+        email_logger.error(u"邮件通知失败，目标邮箱：%s" % ";".join(receiver))
 
 
-def mail_mass(receivers, log_instance, title=None, content=None):
+def mail_mass(receivers, title=None, content=None):
     """
     收信人处理
     """
     if receivers is not None:
         if ";" in receivers:
             for email in receivers.split(";"):
-                send_errmsg([email], log_instance, title=title, content=content)
+                send_errmsg([email], title=title, content=content)
         else:
-            send_errmsg([receivers], log_instance, title=title, content=content)
+            send_errmsg([receivers], title=title, content=content)
