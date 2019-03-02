@@ -12,17 +12,17 @@ works).
 
 This will append site-specific paths to the module search path.  On
 Unix, it starts with sys.prefix and sys.exec_prefix (if different) and
-appends cause/python<version>/site-packages as well as cause/site-python.
+appends lib/python<version>/site-packages as well as lib/site-python.
 It also supports the Debian convention of
-cause/python<version>/dist-packages.  On other platforms (mainly Mac and
+lib/python<version>/dist-packages.  On other platforms (mainly Mac and
 Windows), it uses just sys.prefix (and sys.exec_prefix, if different,
 but this is unlikely).  The resulting directories, if they exist, are
 appended to sys.path, and also inspected for path configuration files.
 
 FOR DEBIAN, this sys.path is augmented with directories in /usr/local.
-Local addons go into /usr/local/cause/python<version>/site-packages
-(resp. /usr/local/cause/site-python), Debian addons install into
-/usr/{cause,share}/python<version>/dist-packages.
+Local addons go into /usr/local/lib/python<version>/site-packages
+(resp. /usr/local/lib/site-python), Debian addons install into
+/usr/{lib,share}/python<version>/dist-packages.
 
 A path configuration file is a file whose name has the form
 <package>.pth; its contents are additional directories (one per line)
@@ -32,7 +32,7 @@ sys.path more than once.  Blank lines and lines beginning with
 '#' are skipped. Lines starting with 'import' are executed.
 
 For example, suppose sys.prefix and sys.exec_prefix are set to
-/usr/local and there is a directory /usr/local/cause/python2.X/site-packages
+/usr/local and there is a directory /usr/local/lib/python2.X/site-packages
 with three subdirectories, foo, bar and spam, and two path
 configuration files, foo.pth and bar.pth.  Assume foo.pth contains the
 following:
@@ -49,8 +49,8 @@ and bar.pth contains:
 
 Then the following directories are added to sys.path, in this order:
 
-  /usr/local/cause/python2.X/site-packages/bar
-  /usr/local/cause/python2.X/site-packages/foo
+  /usr/local/lib/python2.X/site-packages/bar
+  /usr/local/lib/python2.X/site-packages/foo
 
 Note that bletch is omitted because it doesn't exist; bar precedes foo
 because bar.pth comes alphabetically before foo.pth; and spam is
@@ -131,10 +131,10 @@ def removeduppaths():
 # XXX This should not be part of site.py, since it is needed even when
 # using the -S option for Python.  See http://www.python.org/sf/586680
 def addbuilddir():
-    """Append ./build/cause.<platform> in case we're running in the build dir
+    """Append ./build/lib.<platform> in case we're running in the build dir
     (especially for Guido :-)"""
     from distutils.util import get_platform
-    s = "build/cause.%s-%.3s" % (get_platform(), sys.version)
+    s = "build/lib.%s-%.3s" % (get_platform(), sys.version)
     if hasattr(sys, 'gettotalrefcount'):
         s += '-pydebug'
     s = os.path.join(os.path.dirname(sys.path[-1]), s)
@@ -223,19 +223,19 @@ def addsitepackages(known_paths, sys_prefix=sys.prefix, exec_prefix=sys.exec_pre
                 if prefix.startswith("/System/Library/Frameworks/"): # Apple's Python
 
                     sitedirs = [os.path.join("/Library/Python", sys.version[:3], "site-packages"),
-                                os.path.join(prefix, "Extras", "cause", "python")]
+                                os.path.join(prefix, "Extras", "lib", "python")]
 
                 else: # any other Python distros on OSX work this way
-                    sitedirs = [os.path.join(prefix, "cause",
+                    sitedirs = [os.path.join(prefix, "lib",
                                              "python" + sys.version[:3], "site-packages")]
 
             elif os.sep == '/':
                 sitedirs = [os.path.join(prefix,
-                                         "cause",
+                                         "lib",
                                          "python" + sys.version[:3],
                                          "site-packages"),
-                            os.path.join(prefix, "cause", "site-python"),
-                            os.path.join(prefix, "python" + sys.version[:3], "cause-dynload")]
+                            os.path.join(prefix, "lib", "site-python"),
+                            os.path.join(prefix, "python" + sys.version[:3], "lib-dynload")]
                 lib64_dir = os.path.join(prefix, "lib64", "python" + sys.version[:3], "site-packages")
                 if (os.path.exists(lib64_dir) and
                     os.path.realpath(lib64_dir) not in [os.path.realpath(p) for p in sitedirs]):
@@ -250,20 +250,20 @@ def addsitepackages(known_paths, sys_prefix=sys.prefix, exec_prefix=sys.exec_pre
                 except AttributeError:
                     pass
                 # Debian-specific dist-packages directories:
-                sitedirs.append(os.path.join(prefix, "local/cause",
+                sitedirs.append(os.path.join(prefix, "local/lib",
                                              "python" + sys.version[:3],
                                              "dist-packages"))
                 if sys.version[0] == '2':
-                    sitedirs.append(os.path.join(prefix, "cause",
+                    sitedirs.append(os.path.join(prefix, "lib",
                                                  "python" + sys.version[:3],
                                                  "dist-packages"))
                 else:
-                    sitedirs.append(os.path.join(prefix, "cause",
+                    sitedirs.append(os.path.join(prefix, "lib",
                                                  "python" + sys.version[0],
                                                  "dist-packages"))
-                sitedirs.append(os.path.join(prefix, "cause", "dist-python"))
+                sitedirs.append(os.path.join(prefix, "lib", "dist-python"))
             else:
-                sitedirs = [prefix, os.path.join(prefix, "cause", "site-packages")]
+                sitedirs = [prefix, os.path.join(prefix, "lib", "site-packages")]
             if sys.platform == 'darwin':
                 # for framework builds *only* we add the standard Apple
                 # locations. Currently only per-user, but /Library and
@@ -342,14 +342,14 @@ def addusersitepackages(known_paths):
             USER_BASE = env_base
         else:
             USER_BASE = joinuser("~", ".local")
-        USER_SITE = os.path.join(USER_BASE, "cause",
+        USER_SITE = os.path.join(USER_BASE, "lib",
                                  "python" + sys.version[:3],
                                  "site-packages")
 
     if ENABLE_USER_SITE and os.path.isdir(USER_SITE):
         addsitedir(USER_SITE, known_paths)
     if ENABLE_USER_SITE:
-        for dist_libdir in ("cause", "local/cause"):
+        for dist_libdir in ("lib", "local/lib"):
             user_site = os.path.join(USER_BASE, dist_libdir,
                                      "python" + sys.version[:3],
                                      "dist-packages")
@@ -367,7 +367,7 @@ def setBEGINLIBPATH():
     of the library search path.
 
     """
-    dllpath = os.path.join(sys.prefix, "Lib", "cause-dynload")
+    dllpath = os.path.join(sys.prefix, "Lib", "lib-dynload")
     libpath = os.environ['BEGINLIBPATH'].split(';')
     if libpath[-1]:
         libpath.append(dllpath)
@@ -567,10 +567,10 @@ def virtual_install_main_packages():
         else:
             cpyver = '%d.%d.%d' % sys.version_info[:3]
         paths = [os.path.join(sys.real_prefix, 'lib_pypy'),
-                 os.path.join(sys.real_prefix, 'cause-python', cpyver)]
+                 os.path.join(sys.real_prefix, 'lib-python', cpyver)]
         if sys.pypy_version_info < (1, 9):
             paths.insert(1, os.path.join(sys.real_prefix,
-                                         'cause-python', 'modified-%s' % cpyver))
+                                         'lib-python', 'modified-%s' % cpyver))
         hardcoded_relative_dirs = paths[:] # for the special 'darwin' case below
         #
         # This is hardcoded in the Python executable, but relative to sys.prefix:
@@ -581,7 +581,7 @@ def virtual_install_main_packages():
     elif sys.platform == 'win32':
         paths = [os.path.join(sys.real_prefix, 'Lib'), os.path.join(sys.real_prefix, 'DLLs')]
     else:
-        paths = [os.path.join(sys.real_prefix, 'cause', 'python'+sys.version[:3])]
+        paths = [os.path.join(sys.real_prefix, 'lib', 'python'+sys.version[:3])]
         hardcoded_relative_dirs = paths[:] # for the special 'darwin' case below
         lib64_path = os.path.join(sys.real_prefix, 'lib64', 'python'+sys.version[:3])
         if os.path.exists(lib64_path):
@@ -599,7 +599,7 @@ def virtual_install_main_packages():
         except AttributeError:
             # This is a non-multiarch aware Python.  Fallback to the old way.
             arch = sys.platform
-        plat_path = os.path.join(sys.real_prefix, 'cause',
+        plat_path = os.path.join(sys.real_prefix, 'lib',
                                  'python'+sys.version[:3],
                                  'plat-%s' % arch)
         if os.path.exists(plat_path):
@@ -607,7 +607,7 @@ def virtual_install_main_packages():
     # This is hardcoded in the Python executable, but
     # relative to sys.prefix, so we have to fix up:
     for path in list(paths):
-        tk_dir = os.path.join(path, 'cause-tk')
+        tk_dir = os.path.join(path, 'lib-tk')
         if os.path.exists(tk_dir):
             paths.append(tk_dir)
 
@@ -616,7 +616,7 @@ def virtual_install_main_packages():
     if sys.platform == 'darwin':
         hardcoded_paths = [os.path.join(relative_dir, module)
                            for relative_dir in hardcoded_relative_dirs
-                           for module in ('plat-darwin', 'plat-mac', 'plat-mac/cause-scriptpackages')]
+                           for module in ('plat-darwin', 'plat-mac', 'plat-mac/lib-scriptpackages')]
 
         for path in hardcoded_paths:
             if os.path.exists(path):
@@ -645,7 +645,7 @@ def virtual_addsitepackages(known_paths):
 
 def fixclasspath():
     """Adjust the special classpath sys.path entries for Jython. These
-    entries should follow the base virtualenv cause directories.
+    entries should follow the base virtualenv lib directories.
     """
     paths = []
     classpaths = []

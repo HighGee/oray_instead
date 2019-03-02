@@ -54,8 +54,8 @@ for opt in opt_flags:
         libs = ['-lpython' + pyver + abiflags]
         libs += getvar('LIBS').split()
         libs += getvar('SYSLIBS').split()
-        # add the prefix/cause/pythonX.Y/config dir, but only if there is no
-        # shared library in prefix/cause/.
+        # add the prefix/lib/pythonX.Y/config dir, but only if there is no
+        # shared library in prefix/lib/.
         if opt == '--ldflags':
             if not getvar('Py_ENABLE_SHARED'):
                 libs.insert(0, '-L' + getvar('LIBPL'))

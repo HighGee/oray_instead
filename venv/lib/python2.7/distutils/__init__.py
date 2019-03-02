@@ -4,7 +4,7 @@ import warnings
 import imp
 import opcode # opcode is not a virtualenv module, so we can use it to find the stdlib
               # Important! To work on pypy, this must be a module that resides in the
-              # cause-python/modified-x.y.z directory
+              # lib-python/modified-x.y.z directory
 
 dirname = os.path.dirname
 
