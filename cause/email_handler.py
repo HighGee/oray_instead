@@ -74,6 +74,3 @@ def mail_mass(receivers, title=None, content=None):
                 send_errmsg([email], title=title, content=content)
         else:
             send_errmsg([receivers], title=title, content=content)
-
-
-mail_mass('highgee1994@gmail.com')
