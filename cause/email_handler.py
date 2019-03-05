@@ -44,13 +44,18 @@ def send_errmsg(receiver, title=None, content=None):
             except:
                 content = u"外网断开，无法获取出口IP"
         msg = MIMEText(content, "html", _charset="utf-8")
-        me = "OrayInstead@haiji.io"
+        me = "admin@haiji.io"
         msg["Subject"] = Header(title, charset="utf-8")
         msg["From"] = me
         msg["To"] = ";".join(receiver)
 
         try:
-            s = smtplib.SMTP("localhost")
+            if own_cfg.smtp_ssl:
+                s = smtplib.SMTP_SSL(host=own_cfg.smtp_host, port=own_cfg.smtp_port)
+            else:
+                s = smtplib.SMTP(host=own_cfg.smtp_host, port=own_cfg.smtp_port)
+            s.set_debuglevel(1)
+            s.login(own_cfg.smtp_user, own_cfg.smtp_pass)
             s.sendmail(me, receiver, msg.as_string())
             s.quit()
         except Exception, e:
@@ -69,3 +74,6 @@ def mail_mass(receivers, title=None, content=None):
                 send_errmsg([email], title=title, content=content)
         else:
             send_errmsg([receivers], title=title, content=content)
+
+
+mail_mass('highgee1994@gmail.com')
