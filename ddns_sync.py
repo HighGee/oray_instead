@@ -33,7 +33,7 @@ if __name__ == "__main__":
     SecretID = FLAGS.secret_id
     SecretKEY = FLAGS.secret_key
     ROOT_DOMAIN = FLAGS.root_domain
-    RECEIVERS = FLAGS.receivers
+    receivers = FLAGS.receivers
     HOST = FLAGS.host
 
     main_logger = own_log("SYNC", log_file)
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     dst_hosts = [HOST]
     wait_interval = 1
     # 初始化检测 当前出口IP与云端IP异同
-    now_ip = get_local_ip(RECEIVERS=RECEIVERS)
+    now_ip = get_local_ip(receivers=receivers)
     if now_ip["status"] == "ok":
         now_nsip = ""
         for record in \
@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     # 监控变化
     while True:
-        new_ip = get_local_ip(RECEIVERS=RECEIVERS)
+        new_ip = get_local_ip(receivers=receivers)
         if new_ip["status"] == "ok":
             if now_ip["status"] == "ok" and new_ip["ip"] == now_ip["ip"]:
                 time.sleep(wait_interval)
