@@ -12,10 +12,13 @@
 则建立transpond.example.com子域名，并将www和download 通过CNAME 解析其上;<br/>
 再在服务端通过此程序进行监控出口IP的变化及更新transpond子域名的解析记录即可;<br/>
 <br/>
-# 使用方法：SHELL后台运行
+# 准备工作
+编辑cause/config.py文件并按环境情况进行逐项核实
+
+# 使用方法1：SHELL后台运行
 git clone https://github.com/HighGee/oray_instead.git <br/>
-/bin/python -u /the/path/to/oray_instead/ddns_sync.py --root_domain example.com --host transpond --secret_id 腾讯云API_ID --secret_key 腾讯云API_KEY <br/><br/>
-# 使用方法：进程托管
+/bin/python -u /the/path/to/oray_instead/ddns_sync.py --root_domain example.com --host transpond --secret_id 腾讯云API_ID --secret_key 腾讯云API_KEY --receivers "email1@example1.com;email2@example2.com" <br/><br/>
+# 使用方法2（推荐）：进程托管
 git clone https://github.com/HighGee/oray_instead.git <br/>
 yum install supervisor -y<br/>
 #以具体个人需求编辑supervisord_extra.ini，并放至/etc/supervisord.d/；<br/>
