@@ -29,10 +29,11 @@ def get_ip(ip_url, receivers):
                 ban_title = u"[故障]出口IP获取异常，状态码为{}".format(rep.status_code)
             else:
                 ban_title = u"[未知]出口IP获取异常，状态码为{}".format(rep.status_code)
-            mail_mass(receivers, title=ban_title, content="异常站点:{}".format(ip_url))
+            content = "站点 {} 响应出现异常，尽快修复;".format(ip_url)
+            mail_mass(receivers, title=ban_title, content=content)
             result["msg"] = "http_status"
         else:
-            my_ip = json.loads(rep.content)["client_ip"]
+            my_ip = json.loads(rep.content)["client"]
             result.update({"status": "ok", "ip": my_ip})
     except Exception, e:
         ip_logger.error(u"当前网络异常，无法获取出口IP，{}".format(e))
@@ -42,10 +43,11 @@ def get_ip(ip_url, receivers):
 
 
 def get_local_ip(receivers=None):
-    ip_urls = ["http://ip.haiji.pro", "http://ip.haiji.io"]
-    ip_res = get_ip(ip_urls[0], receivers)
+    protol = 'http://'
+    dms = ["ip.haiji.pro", "ip.haiji.io"]
+    ip_res = get_ip(protol + dms[0], receivers)
     if ip_res["status"] == "wrong":
-        ip_res = get_ip(ip_urls[1], receivers)
+        ip_res = get_ip(protol + dms[1], receivers)
         if ip_res["status"] == "wrong":
             mail_mass(receivers)
     return ip_res
