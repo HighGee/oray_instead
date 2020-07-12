@@ -3,7 +3,6 @@
 """
 Author: HaiJi.Wang
 """
-import sys
 import time
 import argparse
 from cause.myip import get_local_ip
@@ -11,8 +10,6 @@ from cause.log_handler import own_log
 from cause.tencent_api_handler import update_record, getSubDomains
 from cause.config import own_cfg
 
-reload(sys)
-sys.setdefaultencoding("utf8")
 log_file = own_cfg.log_file
 
 if __name__ == "__main__":
