@@ -4,6 +4,7 @@
 import hashlib
 import binascii
 import hmac
+import http.client
 import time
 import random
 import json
@@ -28,7 +29,7 @@ def make_plain_text(request_method, requet_host, request_path, params):
 
 def sign(request_method, requet_host, request_path, params, secretKey):
     source = make_plain_text(request_method, requet_host, request_path, params)
-    hashed = hmac.new(secretKey, source, hashlib.sha1)
+    hashed = hmac.new(secretKey.encode(), source.encode(), hashlib.sha1)
     return binascii.b2a_base64(hashed.digest())[:-1]
 
 
@@ -58,7 +59,7 @@ def getSubDomains(rootDomain, secret_id, secret_key, request_method, requet_host
     # 发送请求
     https_conn = None
     try:
-        https_conn = httplib.HTTPSConnection(host=requet_host, port=443)
+        https_conn = http.client.HTTPSConnection(host=requet_host, port=443)
         if request_method == "GET":
             params["Signature"] = quote(sing_text)
 
@@ -114,7 +115,7 @@ def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secr
     # 发送请求
     https_conn = None
     try:
-        https_conn = httplib.HTTPSConnection(host=requet_host, port=443)
+        https_conn = http.client.HTTPSConnection(host=requet_host, port=443)
         if request_method == "GET":
             params["Signature"] = quote(sing_text)
 

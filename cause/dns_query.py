@@ -67,8 +67,3 @@ def DNSQuery(ip):
         ips.append(ip)
         result['ips'] = ips
         return result
-
-
-print(DNSQuery('ip.haiji.pro'))
-
-print(DNSQuery('ip.haiji.io'))
