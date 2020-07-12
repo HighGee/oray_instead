@@ -23,7 +23,7 @@ def get_ip(ip_host, receivers):
         "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:16.0) Gecko/20100101 Firefox/16.0",
     }
     try:
-        rep = requests.get(dst_ip, headers=headers, timeout=5)
+        rep = requests.get("http://".format(dst_ip), headers=headers, timeout=5)
         if rep.status_code != 200:
             ip_logger.error(u"站点{}访问异常，无法获取出口IP，状态码为 {}".format(ip_host, rep.status_code))
             ban_codes = [403, 521, 555]
