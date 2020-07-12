@@ -58,7 +58,7 @@ def send_errmsg(receiver, title=None, content=None):
             s.login(own_cfg.smtp_user, own_cfg.smtp_pass)
             s.sendmail(me, receiver, msg.as_string())
             s.quit()
-        except Exception, e:
+        except Exception as  e:
             email_logger.error(u"邮件通知失败，目标邮箱：%s %s" % (";".join(receiver), e))
     else:
         email_logger.error(u"邮件通知失败，目标邮箱：%s" % ";".join(receiver))

@@ -6,11 +6,10 @@ import binascii
 import hmac
 import time
 import random
-import urllib
 import json
-import httplib
 from cause.config import own_cfg
 from cause.log_handler import own_log
+from urllib.parse import urlencode, quote
 
 tencent_logger = own_log("TENCENT_API", own_cfg.log_file)
 
@@ -61,13 +60,13 @@ def getSubDomains(rootDomain, secret_id, secret_key, request_method, requet_host
     try:
         https_conn = httplib.HTTPSConnection(host=requet_host, port=443)
         if request_method == "GET":
-            params["Signature"] = urllib.quote(sing_text)
+            params["Signature"] = quote(sing_text)
 
             str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
             url = "https://%s%s?%s" % (requet_host, request_path, str_params)
             https_conn.request("GET", url)
         elif request_method == "POST":
-            params = urllib.urlencode(params)
+            params = urlencode(params)
             https_conn.request("POST", request_path, params, headers)
 
         response = https_conn.getresponse()
@@ -76,7 +75,7 @@ def getSubDomains(rootDomain, secret_id, secret_key, request_method, requet_host
         jsonRet = json.loads(data)
         return jsonRet
 
-    except Exception, e:
+    except Exception as  e:
         tencent_logger.error(u"{}".format(e))
     finally:
         if https_conn:
@@ -117,13 +116,13 @@ def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secr
     try:
         https_conn = httplib.HTTPSConnection(host=requet_host, port=443)
         if request_method == "GET":
-            params["Signature"] = urllib.quote(sing_text)
+            params["Signature"] = quote(sing_text)
 
             str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
             url = "https://%s%s?%s" % (requet_host, request_path, str_params)
             https_conn.request("GET", url)
         elif request_method == "POST":
-            params = urllib.urlencode(params)
+            params = urlencode(params)
             https_conn.request("POST", request_path, params, headers)
 
         response = https_conn.getresponse()
@@ -132,7 +131,7 @@ def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secr
         jsonRet = json.loads(data)
         return jsonRet
 
-    except Exception, e:
+    except Exception as e:
         tencent_logger.error(u"{}".format(e))
     finally:
         if https_conn:
