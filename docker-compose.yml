@@ -1,6 +1,7 @@
 version: '2'
 services:
   runner:
+    restart: always
     build: .
     environment:
       - PYTHONUNBUFFERED=1
