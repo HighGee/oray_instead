@@ -1,0 +1,14 @@
+SMTP_CONF:
+  is_ssl: True
+  host: smtpdm.aliyun.com
+  port: 465
+  user: user
+  pass: pass
+SECRET_ID: xxxx
+SECRET_KEY: xxxx
+DNS_HOST: transpond
+DNS_DOMAIN: example.com
+RECEIVERS:
+  - mail1@example.com
+  - mail2@example.com
+SENTRY_DSN: http://xxxxx@sentry.io/3

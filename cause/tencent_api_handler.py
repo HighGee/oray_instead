@@ -8,32 +8,38 @@ import http.client
 import time
 import random
 import json
+import traceback
 from cause.config import own_cfg
 from cause.log_handler import own_log
 from urllib.parse import urlencode, quote
 
-tencent_logger = own_log("TENCENT_API", own_cfg.log_file)
+tencent_logger = own_log("TENCENT_API")
+TENCENT_PATH = own_cfg.REQUEST["path"]
+TENCENT_HOST = own_cfg.REQUEST["host"]
+TENCENT_METH = own_cfg.REQUEST["method"]
+SECRET_ID = own_cfg.SECRET_ID
+SECRET_KEY = own_cfg.SECRET_KEY
 
 
-def make_plain_text(request_method, requet_host, request_path, params):
+def make_plain_text(params):
     str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
 
     source = "%s%s%s?%s" % (
-        request_method.upper(),
-        requet_host,
-        request_path,
+        TENCENT_METH.upper(),
+        TENCENT_HOST,
+        TENCENT_PATH,
         str_params
     )
     return source
 
 
-def sign(request_method, requet_host, request_path, params, secretKey):
-    source = make_plain_text(request_method, requet_host, request_path, params)
-    hashed = hmac.new(secretKey.encode(), source.encode(), hashlib.sha1)
+def sign(params):
+    source = make_plain_text(params)
+    hashed = hmac.new(SECRET_KEY.encode(), source.encode(), hashlib.sha1)
     return binascii.b2a_base64(hashed.digest())[:-1]
 
 
-def getSubDomains(rootDomain, secret_id, secret_key, request_method, requet_host, request_path):
+def getSubDomains(rootDomain):
     """
     获取所有子域名
     """
@@ -41,7 +47,7 @@ def getSubDomains(rootDomain, secret_id, secret_key, request_method, requet_host
     base_arg = {
         "Timestamp": int(time.time()),
         "Nonce": int(random.random()),
-        "SecretId": secret_id,
+        "SecretId": SECRET_ID,
     }
     base_arg.update({
         "domain": rootDomain,
@@ -49,7 +55,7 @@ def getSubDomains(rootDomain, secret_id, secret_key, request_method, requet_host
     })
     params = base_arg
 
-    sing_text = sign(request_method, requet_host, request_path, params, secret_key)
+    sing_text = sign(params)
 
     params["Signature"] = sing_text
 
@@ -59,16 +65,16 @@ def getSubDomains(rootDomain, secret_id, secret_key, request_method, requet_host
     # 发送请求
     https_conn = None
     try:
-        https_conn = http.client.HTTPSConnection(host=requet_host, port=443)
-        if request_method == "GET":
+        https_conn = http.client.HTTPSConnection(host=TENCENT_HOST, port=443)
+        if TENCENT_METH == "GET":
             params["Signature"] = quote(sing_text)
 
             str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
-            url = "https://%s%s?%s" % (requet_host, request_path, str_params)
+            url = "https://%s%s?%s" % (TENCENT_HOST, TENCENT_PATH, str_params)
             https_conn.request("GET", url)
-        elif request_method == "POST":
+        elif TENCENT_METH == "POST":
             params = urlencode(params)
-            https_conn.request("POST", request_path, params, headers)
+            https_conn.request("POST", TENCENT_PATH, params, headers)
 
         response = https_conn.getresponse()
         data = response.read()
@@ -77,14 +83,13 @@ def getSubDomains(rootDomain, secret_id, secret_key, request_method, requet_host
         return jsonRet
 
     except Exception as  e:
-        tencent_logger.error(u"{}".format(e))
+        tencent_logger.error(traceback.format_exc())
     finally:
         if https_conn:
             https_conn.close()
 
 
-def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secret_key, request_method,
-                  requet_host, request_path):
+def update_record(rootdomain, recordid, host, recordtype, value):
     """
     更新DNS解析记录
     """
@@ -92,7 +97,7 @@ def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secr
     base_arg = {
         "Timestamp": int(time.time()),
         "Nonce": int(random.random()),
-        "SecretId": secret_id,
+        "SecretId": SECRET_ID,
     }
     base_arg.update({
         "domain": rootdomain,
@@ -105,7 +110,7 @@ def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secr
     })
     params = base_arg
 
-    sing_text = sign(request_method, requet_host, request_path, params, secret_key)
+    sing_text = sign(params)
 
     params["Signature"] = sing_text
 
@@ -115,16 +120,16 @@ def update_record(rootdomain, recordid, host, recordtype, value, secret_id, secr
     # 发送请求
     https_conn = None
     try:
-        https_conn = http.client.HTTPSConnection(host=requet_host, port=443)
-        if request_method == "GET":
+        https_conn = http.client.HTTPSConnection(host=TENCENT_HOST, port=443)
+        if TENCENT_METH == "GET":
             params["Signature"] = quote(sing_text)
 
             str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
-            url = "https://%s%s?%s" % (requet_host, request_path, str_params)
+            url = "https://%s%s?%s" % (TENCENT_HOST, TENCENT_PATH, str_params)
             https_conn.request("GET", url)
-        elif request_method == "POST":
+        elif TENCENT_METH == "POST":
             params = urlencode(params)
-            https_conn.request("POST", request_path, params, headers)
+            https_conn.request("POST", TENCENT_PATH, params, headers)
 
         response = https_conn.getresponse()
         data = response.read()

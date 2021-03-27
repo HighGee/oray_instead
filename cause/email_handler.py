@@ -9,7 +9,7 @@ from email.header import Header
 from cause.log_handler import own_log
 from cause.config import own_cfg
 
-email_logger = own_log('EMAIL', own_cfg.log_file)
+email_logger = own_log('EMAIL')
 
 
 class IsMail():
@@ -64,13 +64,8 @@ def send_errmsg(receiver, title=None, content=None):
         email_logger.error(u"邮件通知失败，目标邮箱：%s" % ";".join(receiver))
 
 
-def mail_mass(receivers, title=None, content=None):
-    """
-    收信人处理
-    """
-    if receivers is not None:
-        if ";" in receivers:
-            for email in receivers.split(";"):
-                send_errmsg([email], title=title, content=content)
-        else:
-            send_errmsg([receivers], title=title, content=content)
+def mail_mass(title=None, content=None):
+    receivers = own_cfg.RECEIVERS
+    if receivers:
+        for email in receivers:
+            send_errmsg([email], title=title, content=content)
