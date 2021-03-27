@@ -1,0 +1,9 @@
+version: '2'
+services:
+  runner:
+    build: .
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: python3 /code/ddns_sync.py
+    volumes:
+      - .:/code
