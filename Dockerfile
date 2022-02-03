@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.9
 RUN sed -i 's/httpredir.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list
 RUN mkdir /code
 WORKDIR /code
