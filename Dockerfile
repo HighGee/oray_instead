@@ -1,5 +1,6 @@
 FROM python:3.6
-RUN sed -i 's/httpredir.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list
+ADD sources.list /etc/apt/
+RUN apt-get update && apt-get install dnsutils -y
 RUN mkdir /code
 WORKDIR /code
 ADD pip.requirements /code/
