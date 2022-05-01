@@ -41,7 +41,7 @@ def send_errmsg(receiver, title=None, content=None):
         if content is None:
             try:
                 content = requests.get(ipipNetUrl).content
-            except:
+            except Exception:
                 content = u"外网断开，无法获取出口IP"
         msg = MIMEText(content, "html", _charset="utf-8")
         me = "admin@haiji.io"
@@ -51,14 +51,16 @@ def send_errmsg(receiver, title=None, content=None):
 
         try:
             if own_cfg.smtp_ssl:
-                s = smtplib.SMTP_SSL(host=own_cfg.smtp_host, port=own_cfg.smtp_port)
+                s = smtplib.SMTP_SSL(host=own_cfg.smtp_host,
+                                     port=own_cfg.smtp_port)
             else:
-                s = smtplib.SMTP(host=own_cfg.smtp_host, port=own_cfg.smtp_port)
+                s = smtplib.SMTP(host=own_cfg.smtp_host,
+                                 port=own_cfg.smtp_port)
             s.set_debuglevel(1)
             s.login(own_cfg.smtp_user, own_cfg.smtp_pass)
             s.sendmail(me, receiver, msg.as_string())
             s.quit()
-        except Exception as  e:
+        except Exception as e:
             email_logger.error(u"邮件通知失败，目标邮箱：%s %s" % (";".join(receiver), e))
     else:
         email_logger.error(u"邮件通知失败，目标邮箱：%s" % ";".join(receiver))

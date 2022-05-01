@@ -33,7 +33,7 @@ def own_log(app_name):
 
     # 日志格式
     formatter = logging.Formatter(
-        "%(asctime)s %(name)s %(filename)s:%(lineno)d %(levelname)s %(message)s")
+        "%(asctime)s %(name)s %(filename)s:%(lineno)d %(levelname)s %(message)s")  # noqa
     formatter.datefmt = "%Y-%m-%d %H:%M:%S"
 
     file_handler = TimedRotatingFileHandler(
