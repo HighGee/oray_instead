@@ -1,0 +1,11 @@
+stages:
+  - test
+
+pystyle:
+  image: pipelinecomponents/flake8
+  stage: test
+  # 允许失败
+  # allow_failure: true
+  script:
+    - cd $CI_PROJECT_DIR/ && flake8
+

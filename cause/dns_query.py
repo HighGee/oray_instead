@@ -1,10 +1,10 @@
 # -*- coding:utf-8 -*-
 # Design by Haiji
 # Date 2020/7/12 08:33
-import subprocess
-from netaddr.ip import IPAddress
-import dns.resolver
 import dns
+import subprocess
+import dns.resolver
+from netaddr.ip import IPAddress
 
 
 def isIP4or6(cfgstr):
@@ -14,16 +14,12 @@ def isIP4or6(cfgstr):
         text = cfgstr
 
     try:
-        addr = IPAddress(text)
+        IPAddress(text)
         ipFlg = True
-    except:
-        addr = False
+    except Exception:
         ipFlg = False
 
-    if ipFlg is True:
-        return addr.version
-    else:
-        return False
+    return True if ipFlg else False
 
 
 def DNSQuery(ip):
@@ -43,10 +39,10 @@ def DNSQuery(ip):
                 for j in i.items:
                     try:
                         ips.append(j.address)
-                    except:
+                    except Exception:
                         pass
             result['ips'] = ips
-        except:
+        except Exception:
             cmd = 'dig %s @%s +short' % (ip, dns_server)
             B = subprocess.getoutput(cmd).split('\n')
             res_ips = []

@@ -22,7 +22,9 @@ SECRET_KEY = own_cfg.SECRET_KEY
 
 
 def make_plain_text(params):
-    str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
+    sorted_keys = sorted(params.keys())
+    url_args = [k + "=" + str(params[k]) for k in sorted_keys]
+    str_params = "&".join(url_args)
 
     source = "%s%s%s?%s" % (
         TENCENT_METH.upper(),
@@ -68,8 +70,8 @@ def getSubDomains(rootDomain):
         https_conn = http.client.HTTPSConnection(host=TENCENT_HOST, port=443)
         if TENCENT_METH == "GET":
             params["Signature"] = quote(sing_text)
-
-            str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
+            str_params = "&".join(
+                k + "=" + str(params[k]) for k in sorted(params.keys()))
             url = "https://%s%s?%s" % (TENCENT_HOST, TENCENT_PATH, str_params)
             https_conn.request("GET", url)
         elif TENCENT_METH == "POST":
@@ -82,7 +84,7 @@ def getSubDomains(rootDomain):
         jsonRet = json.loads(data)
         return jsonRet
 
-    except Exception as  e:
+    except Exception:
         tencent_logger.error(traceback.format_exc())
     finally:
         if https_conn:
@@ -123,8 +125,8 @@ def update_record(rootdomain, recordid, host, recordtype, value):
         https_conn = http.client.HTTPSConnection(host=TENCENT_HOST, port=443)
         if TENCENT_METH == "GET":
             params["Signature"] = quote(sing_text)
-
-            str_params = "&".join(k + "=" + str(params[k]) for k in sorted(params.keys()))
+            str_params = "&".join(
+                k + "=" + str(params[k]) for k in sorted(params.keys()))
             url = "https://%s%s?%s" % (TENCENT_HOST, TENCENT_PATH, str_params)
             https_conn.request("GET", url)
         elif TENCENT_METH == "POST":
