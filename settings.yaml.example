@@ -4,6 +4,7 @@ SMTP_CONF:
   port: 465
   user: user
   pass: pass
+MAIL_FROM: admin@example.com
 SECRET_ID: xxxx
 SECRET_KEY: xxxx
 DNS_HOST: transpond

@@ -5,6 +5,6 @@ services:
     build: .
     environment:
       - PYTHONUNBUFFERED=1
-    command: python3 /code/ddns_sync.py
+    command: python3 /code/main.py
     volumes:
       - .:/code

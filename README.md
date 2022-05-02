@@ -12,13 +12,13 @@
     * 再在服务端通过此程序进行监控出口IP的变化及更新transpond子域名的解析记录
 # 四、使用方法
 ## 4.1. 使用前准备
-    touch cause/config.yaml # 并按环境情况进行逐项核实
-    vim cause/config.yaml
+    touch settings.yaml # 并按环境情况进行逐项核实
+    vim settings.yaml
 
     or
 
-    cp cause/config.yaml.example cuase/config.yaml
-    vim cause/config.yaml
+    cp settings.yaml.example settings.yaml
+    vim settings.yaml
 ## 4.2. docker
     docker-compose up -d
 ## 4.3. SHELL后台运行
