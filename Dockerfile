@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.7.13
 ADD sources.list /etc/apt/
 RUN apt-get update && apt-get install dnsutils -y
 RUN mkdir /code
